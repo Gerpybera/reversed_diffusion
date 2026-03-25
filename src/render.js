@@ -1,5 +1,5 @@
 import { cancelComfyRequest, runComfy } from "./api";
-// import { getWebcamVideo, isWebcamReady } from "./webcam";
+import { getWebcamVideo, initWebcam, isWebcamReady } from "./webcam";
 export default class renderCanvas {
   constructor(canvas, prompt = "default", onFirstImage = null) {
     this.canvas = canvas;
@@ -18,14 +18,78 @@ export default class renderCanvas {
     this.lastRenderTime = 0;
     this.renderIntervalMs = 500;
     this.generatedImage = null;
-    this.seed = Math.floor(Math.random() * 2 ** 32);
+    this.baseSeed = 12345;
+    this.seed = this.computeSeedForPrompt(prompt || "default");
     this.defaultPrompt = prompt || "default";
     this.onFirstImage = onFirstImage;
     this.hasNotifiedFirstImage = false;
     this.frameId = null;
     this.isDisposed = false;
+    this.webcamInitAttempted = false;
 
+    this.ensureWebcam();
     this.draw();
+  }
+  computeSeedForPrompt(promptText) {
+    const text = String(promptText || "default");
+    let hash = 2166136261;
+
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    const mixed = (hash ^ this.baseSeed) >>> 0;
+    return mixed === 0 ? 1 : mixed;
+  }
+  ensureWebcam() {
+    if (this.webcamInitAttempted) {
+      return;
+    }
+
+    this.webcamInitAttempted = true;
+    initWebcam().catch((error) => {
+      this.webcamInitAttempted = false;
+      console.error("Unable to initialize webcam:", error);
+    });
+  }
+  drawVideoCover(ctx, video, targetWidth, targetHeight) {
+    const sourceWidth = video.videoWidth;
+    const sourceHeight = video.videoHeight;
+
+    if (!sourceWidth || !sourceHeight) {
+      return false;
+    }
+
+    const sourceRatio = sourceWidth / sourceHeight;
+    const targetRatio = targetWidth / targetHeight;
+
+    let cropWidth = sourceWidth;
+    let cropHeight = sourceHeight;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (sourceRatio > targetRatio) {
+      cropWidth = Math.floor(sourceHeight * targetRatio);
+      offsetX = Math.floor((sourceWidth - cropWidth) / 2);
+    } else {
+      cropHeight = Math.floor(sourceWidth / targetRatio);
+      offsetY = Math.floor((sourceHeight - cropHeight) / 2);
+    }
+
+    ctx.drawImage(
+      video,
+      offsetX,
+      offsetY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      targetWidth,
+      targetHeight,
+    );
+
+    return true;
   }
   draw() {
     if (this.isDisposed) {
@@ -35,13 +99,11 @@ export default class renderCanvas {
     this.frameId = requestAnimationFrame(() => this.draw());
     this.queueRender();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.displayGeneratedImage();
 
     if (this.isRendering && !this.generatedImage) {
       this.waitScreen();
-      return;
     }
-
-    this.displayGeneratedImage();
   }
   getPrompt() {
     const promptEl = document.getElementById("prompt");
@@ -60,19 +122,32 @@ export default class renderCanvas {
       return;
     }
 
+    this.ensureWebcam();
+
     this.isRendering = true;
 
     try {
-      // Webcam reference disabled for now (kept commented, not deleted).
-      // this.captureCtx.drawImage(video, 0, 0, this.captureSize, this.captureSize);
-      this.captureCtx.fillStyle = "#000";
-      this.captureCtx.fillRect(0, 0, this.captureSize, this.captureSize);
+      const video = getWebcamVideo();
+
+      if (!isWebcamReady() || !video) {
+        return;
+      }
+
+      this.captureCtx.clearRect(0, 0, this.captureSize, this.captureSize);
+      this.drawVideoCover(
+        this.captureCtx,
+        video,
+        this.captureSize,
+        this.captureSize,
+      );
+
       const inputDataUrl = this.captureCanvas.toDataURL("image/png");
-      const currentSeed = Math.floor(Math.random() * 2 ** 32);
+      const promptText = this.getPrompt();
+      const currentSeed = this.computeSeedForPrompt(promptText);
       this.seed = currentSeed;
       const result = await runComfy(
         inputDataUrl,
-        this.getPrompt(),
+        promptText,
         currentSeed,
       );
 
@@ -130,18 +205,18 @@ export default class renderCanvas {
         this.canvas.height,
         this.canvas.height,
       );
-    }
-
-    /*
-    const video = getWebcamVideo();
-
-    if (!isWebcamReady() || !video) {
       return;
     }
 
-    this.ctx.drawImage(video, 0, 0, this.canvas.width, this.canvas.height);
-    this.queueRender(video);
-    */
+    const video = getWebcamVideo();
+
+    if (!isWebcamReady() || !video) {
+      this.ctx.fillStyle = "#000";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      return;
+    }
+
+    this.drawVideoCover(this.ctx, video, this.canvas.width, this.canvas.height);
   }
 
   dispose() {
@@ -153,7 +228,7 @@ export default class renderCanvas {
     }
   }
   waitScreen() {
-    this.ctx.fillStyle = "#000";
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.fillStyle = "#fff";
     this.ctx.font = "30px Arial";

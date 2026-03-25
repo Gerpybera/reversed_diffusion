@@ -5,7 +5,7 @@ let currentWorkflowPath = null;
 let workflowDropdownInitialized = false;
 const workflowCache = new Map();
 
-const workflowModules = import.meta.glob("./workflows/sdxlturbo_b64_V3.json");
+const workflowModules = import.meta.glob("./workflows/wildbreaker-SIMPLEV5.json");
 const defaultWorkflowPath = Object.keys(workflowModules)[0] ?? null;
 
 function setStatus(text) {
@@ -147,6 +147,57 @@ function ensureDataUrl(base64) {
   return `data:image/png;base64,${base64}`;
 }
 
+function getWorkflowNodes(workflow) {
+  return Object.values(workflow || {}).filter(
+    (node) => node && typeof node === "object" && node.inputs,
+  );
+}
+
+function applyWorkflowInputs(workflow, dataUrl, promptText, seed) {
+  const nodes = getWorkflowNodes(workflow);
+
+  const base64Nodes = nodes.filter((node) => "data" in node.inputs);
+  for (const node of base64Nodes) {
+    node.inputs.data = extractBase64(dataUrl);
+  }
+
+  if (base64Nodes.length === 0) {
+    throw new Error(
+      "selected workflow has no base64 image input node (expected an input named 'data')",
+    );
+  }
+
+  // Prefer node 78 (jungle prompt), but fall back to other positive prompt nodes
+  let textNode = null;
+  
+  if (workflow["78"] && workflow["78"].class_type === "CLIPTextEncode" && "text" in workflow["78"].inputs) {
+    textNode = workflow["78"];
+  } else {
+    const clipTextNodes = Object.entries(workflow).filter(
+      ([, node]) => node && node.class_type === "CLIPTextEncode" && "text" in node.inputs,
+    );
+
+    // Prefer likely positive prompt nodes and avoid obvious negative prompts.
+    textNode = clipTextNodes.find(([, node]) => {
+      const text = String(node.inputs.text || "").toLowerCase();
+      return !/(watermark|blurry|deformed|ugly|low quality|negative)/.test(text);
+    })?.[1];
+  }
+
+  if (textNode) {
+    textNode.inputs.text = promptText;
+  }
+
+  for (const node of nodes) {
+    if ("noise_seed" in node.inputs) {
+      node.inputs.noise_seed = seed;
+    }
+    if ("seed" in node.inputs) {
+      node.inputs.seed = seed;
+    }
+  }
+}
+
 function isLikelyBase64Image(value) {
   if (typeof value !== "string") {
     return false;
@@ -200,6 +251,79 @@ function findBase64Output(history) {
   return null;
 }
 
+function findImageDescriptorInValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = findImageDescriptorInValue(item);
+      if (nested) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    if (
+      typeof value.filename === "string" &&
+      typeof value.type === "string"
+    ) {
+      return {
+        filename: value.filename,
+        subfolder: typeof value.subfolder === "string" ? value.subfolder : "",
+        type: value.type,
+      };
+    }
+
+    for (const nestedValue of Object.values(value)) {
+      const nested = findImageDescriptorInValue(nestedValue);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
+function findImageDescriptorOutput(history) {
+  const outputs = history?.outputs || {};
+
+  for (const nodeId of Object.keys(outputs)) {
+    const value = outputs[nodeId];
+    const descriptor = findImageDescriptorInValue(value);
+    if (descriptor) {
+      return descriptor;
+    }
+  }
+
+  return null;
+}
+
+async function imageDescriptorToDataUrl(descriptor, signal) {
+  const params = new URLSearchParams({
+    filename: descriptor.filename,
+    subfolder: descriptor.subfolder || "",
+    type: descriptor.type,
+  });
+
+  const res = await fetch(`${COMFY_URL}/view?${params.toString()}`, { signal });
+  if (!res.ok) {
+    throw new Error("failed to fetch image output");
+  }
+
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("failed to decode image output"));
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function getBase64FromHistory(promptId, signal) {
   while (true) {
     if (signal.aborted) {
@@ -218,6 +342,11 @@ async function getBase64FromHistory(promptId, signal) {
 
     const textOutput = findBase64Output(history);
     if (textOutput) return ensureDataUrl(textOutput);
+
+    const imageDescriptor = findImageDescriptorOutput(history);
+    if (imageDescriptor) {
+      return await imageDescriptorToDataUrl(imageDescriptor, signal);
+    }
 
     if (history?.status?.completed) return null;
   }
@@ -248,9 +377,7 @@ export async function runComfy(dataUrl, promptText, seed) {
       `running: ${currentWorkflowPath.split("/").pop().replace(".json", "")}...`,
     );
 
-    workflow["30"].inputs.data = extractBase64(dataUrl);
-    workflow["6"].inputs.text = promptText;
-    workflow["13"].inputs.noise_seed = seed;
+    applyWorkflowInputs(workflow, dataUrl, promptText, seed);
 
     const promptRes = await fetch(`${COMFY_URL}/prompt`, {
       method: "POST",

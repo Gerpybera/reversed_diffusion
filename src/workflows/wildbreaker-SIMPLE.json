@@ -1,0 +1,827 @@
+{
+  "5": {
+    "inputs": {
+      "image": "webcam/1774451197444.png [temp]",
+      "width": 640,
+      "height": 480,
+      "capture_on_queue": true
+    },
+    "class_type": "WebcamCapture",
+    "_meta": {
+      "title": "Webcam Capture"
+    }
+  },
+  "8": {
+    "inputs": {
+      "shorter_edge": 512,
+      "images": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "ResizeImagesByShorterEdge",
+    "_meta": {
+      "title": "Resize Images by Shorter Edge"
+    }
+  },
+  "9": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "CenterCropImages",
+    "_meta": {
+      "title": "Center Crop Images"
+    }
+  },
+  "19": {
+    "inputs": {
+      "images": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "34": {
+    "inputs": {
+      "images": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "38": {
+    "inputs": {
+      "image": [
+        "39",
+        0
+      ],
+      "alpha": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "JoinImageWithAlpha",
+    "_meta": {
+      "title": "Join Image with Alpha"
+    }
+  },
+  "39": {
+    "inputs": {
+      "rembg_session": [
+        "40",
+        0
+      ],
+      "image": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "ImageRemoveBackground+",
+    "_meta": {
+      "title": "🔧 Image Remove Background"
+    }
+  },
+  "40": {
+    "inputs": {
+      "model": "u2netp: lightweight general purpose",
+      "providers": "CUDA"
+    },
+    "class_type": "RemBGSession+",
+    "_meta": {
+      "title": "🔧 RemBG Session"
+    }
+  },
+  "41": {
+    "inputs": {
+      "mask": [
+        "39",
+        1
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "InvertMask"
+    }
+  },
+  "42": {
+    "inputs": {
+      "mask": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "MaskPreview+",
+    "_meta": {
+      "title": "🔧 Mask Preview"
+    }
+  },
+  "43": {
+    "inputs": {
+      "lora_name": "City_Worlds_01_Effects_xlc.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": [
+        "51",
+        0
+      ],
+      "clip": [
+        "51",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA (Model and CLIP)"
+    }
+  },
+  "44": {
+    "inputs": {
+      "text": "blurry, deformed, ugly, low quality, cartoon, sketch, wood, toy, flat, 2d, white background, plain, empty, people, watermark, text, dark",
+      "clip": [
+        "43",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "45": {
+    "inputs": {
+      "control_net_name": "diffusion_pytorch_model.fp16.safetensors",
+      "model": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "DiffControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model (diff)"
+    }
+  },
+  "46": {
+    "inputs": {
+      "strength": 0.8,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": [
+        "49",
+        0
+      ],
+      "negative": [
+        "44",
+        0
+      ],
+      "control_net": [
+        "45",
+        0
+      ],
+      "image": [
+        "63",
+        0
+      ],
+      "vae": [
+        "51",
+        2
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet"
+    }
+  },
+  "48": {
+    "inputs": {
+      "samples": [
+        "50",
+        0
+      ],
+      "vae": [
+        "51",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "49": {
+    "inputs": {
+      "text": "citybkg, aerial top-down,  city, luxury glass skyscrapers, from above, modern towers, photorealistic, 8k, cinematic lighting, sharp details, birds eye view, ultra realistic, ",
+      "clip": [
+        "43",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "50": {
+    "inputs": {
+      "seed": 582385241168765,
+      "steps": 1,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": [
+        "43",
+        0
+      ],
+      "positive": [
+        "46",
+        0
+      ],
+      "negative": [
+        "46",
+        1
+      ],
+      "latent_image": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "51": {
+    "inputs": {
+      "ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "52": {
+    "inputs": {
+      "images": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "53": {
+    "inputs": {
+      "pixels": [
+        "38",
+        0
+      ],
+      "vae": [
+        "51",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "54": {
+    "inputs": {
+      "image": [
+        "48",
+        0
+      ],
+      "alpha": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "JoinImageWithAlpha",
+    "_meta": {
+      "title": "Join Image with Alpha"
+    }
+  },
+  "55": {
+    "inputs": {
+      "images": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "63": {
+    "inputs": {
+      "da_model": [
+        "64",
+        0
+      ],
+      "images": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "DepthAnything_V2",
+    "_meta": {
+      "title": "Depth Anything V2"
+    }
+  },
+  "64": {
+    "inputs": {
+      "model": "depth_anything_v2_vits_fp16.safetensors",
+      "precision": "auto"
+    },
+    "class_type": "DownloadAndLoadDepthAnythingV2Model",
+    "_meta": {
+      "title": "DownloadAndLoadDepthAnythingV2Model"
+    }
+  },
+  "65": {
+    "inputs": {
+      "images": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "66": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 13,
+      "cfg": 1,
+      "model": [
+        "77",
+        0
+      ],
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "75",
+        0
+      ],
+      "sampler": [
+        "67",
+        0
+      ],
+      "sigmas": [
+        "70",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "67": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "68": {
+    "inputs": {
+      "samples": [
+        "66",
+        0
+      ],
+      "vae": [
+        "73",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "69": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "70": {
+    "inputs": {
+      "steps": 1,
+      "denoise": 0.9,
+      "model": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "SDTurboScheduler",
+    "_meta": {
+      "title": "SDTurboScheduler"
+    }
+  },
+  "71": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "upscale_method": "nearest-exact",
+      "keep_proportion": false,
+      "divisible_by": 2,
+      "crop": 0,
+      "image": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJ",
+    "_meta": {
+      "title": "Image Resize KJ (Swwan)"
+    }
+  },
+  "72": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "keep_proportions": false,
+      "upscale_method": "nearest-exact",
+      "crop": "center",
+      "mask": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "ResizeMask",
+    "_meta": {
+      "title": "Resize Mask"
+    }
+  },
+  "73": {
+    "inputs": {
+      "ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "74": {
+    "inputs": {
+      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": {
+      "title": "Load CLIP Vision"
+    }
+  },
+  "75": {
+    "inputs": {
+      "text": "desert, sand, water",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "76": {
+    "inputs": {
+      "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
+    },
+    "class_type": "IPAdapterModelLoader",
+    "_meta": {
+      "title": "IPAdapter Model Loader"
+    }
+  },
+  "77": {
+    "inputs": {
+      "ip_adapter_name": "ip-adapter-plus_sdxl_vit-h.safetensors",
+      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "weight": 1,
+      "start_at": 0.1,
+      "end_at": 1,
+      "weight_type": "standard",
+      "enabled": true,
+      "model": [
+        "73",
+        0
+      ],
+      "image": [
+        "71",
+        0
+      ],
+      "ip_adapter_opt": [
+        "76",
+        0
+      ],
+      "clip_vision_opt": [
+        "74",
+        0
+      ],
+      "attn_mask": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "AV_IPAdapter",
+    "_meta": {
+      "title": "IP Adapter Apply"
+    }
+  },
+  "78": {
+    "inputs": {
+      "text": "jungle, forest, bird view, 45 degree",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "80": {
+    "inputs": {
+      "mask": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "InvertMask"
+    }
+  },
+  "85": {
+    "inputs": {
+      "mask": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "MaskPreview+",
+    "_meta": {
+      "title": "🔧 Mask Preview"
+    }
+  },
+  "87": {
+    "inputs": {
+      "text": "desert , sahara, bird view, 45 degree",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "88": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 13,
+      "cfg": 1,
+      "model": [
+        "77",
+        0
+      ],
+      "positive": [
+        "87",
+        0
+      ],
+      "negative": [
+        "89",
+        0
+      ],
+      "sampler": [
+        "67",
+        0
+      ],
+      "sigmas": [
+        "70",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "89": {
+    "inputs": {
+      "text": "threes, water",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "90": {
+    "inputs": {
+      "samples": [
+        "88",
+        0
+      ],
+      "vae": [
+        "73",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "91": {
+    "inputs": {
+      "text": "ice environnement, antartic, bird view, 45 degree",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "92": {
+    "inputs": {
+      "text": "desert, sand, water, threes",
+      "clip": [
+        "73",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "93": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 150,
+      "cfg": 1,
+      "model": [
+        "77",
+        0
+      ],
+      "positive": [
+        "91",
+        0
+      ],
+      "negative": [
+        "92",
+        0
+      ],
+      "sampler": [
+        "67",
+        0
+      ],
+      "sigmas": [
+        "70",
+        0
+      ],
+      "latent_image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
+    }
+  },
+  "94": {
+    "inputs": {
+      "samples": [
+        "93",
+        0
+      ],
+      "vae": [
+        "73",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "95": {
+    "inputs": {
+      "images": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "96": {
+    "inputs": {
+      "images": [
+        "90",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "105": {
+    "inputs": {
+      "format": "JPEG",
+      "quality": 95,
+      "add_prefix": true,
+      "optimize": true,
+      "image": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "ImageToBase64",
+    "_meta": {
+      "title": "Image to Base64"
+    }
+  },
+  "106": {
+    "inputs": {
+      "format": "JPEG",
+      "quality": 95,
+      "add_prefix": true,
+      "optimize": true,
+      "image": [
+        "90",
+        0
+      ]
+    },
+    "class_type": "ImageToBase64",
+    "_meta": {
+      "title": "Image to Base64"
+    }
+  },
+  "107": {
+    "inputs": {
+      "format": "JPEG",
+      "quality": 95,
+      "add_prefix": true,
+      "optimize": true,
+      "image": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "ImageToBase64",
+    "_meta": {
+      "title": "Image to Base64"
+    }
+  }
+}

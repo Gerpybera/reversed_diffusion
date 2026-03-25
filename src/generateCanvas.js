@@ -362,11 +362,11 @@ export default class generateCanvas {
     switch (environmentValue) {
       default:
       case "default":
-        return "space, stars, galaxy, nebula, cosmic";
+        return "citybkg, aerial top-down,  city, luxury glass skyscrapers, from above, modern towers, photorealistic, 8k, cinematic lighting, sharp details, birds eye view, ultra realistic";
       case "Desert":
-        return "cinematic desert landscape, sand dunes, dramatic lighting, epic composition";
+        return "desert, sand dunes, bird view, 45 degree";
       case "Rainforest":
-        return "tropical rainforest, lush vegetation, vibrant colors, misty atmosphere, cinematic composition";
+        return "jungle, forest, bird view, 45 degree";
       case "Polar":
         return "arctic polar landscape, icy terrain, snow-covered mountains, cold atmosphere, dramatic lighting, cinematic composition";
     }
