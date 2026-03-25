@@ -412,7 +412,7 @@ if (restartButton) {
   });
 }
 
-const isInDevelopment = true;
+const isInDevelopment = false;
 window.addEventListener("keydown", (event) => {
   if (isInDevelopment && event.key.toLowerCase() === "p") {
     isProgressionForcedComplete = true;
