@@ -1,3 +1,13 @@
+@font-face {
+  font-family: "Alte Has Grotesk Regular";
+  src: url("/AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Alte Has Grotesk Bold";
+  src: url("/AlteHaasGroteskBold.ttf") format("truetype");
+}
+
 body{
   margin: 0;
   padding: 0;
@@ -39,11 +49,11 @@ button:hover{
 
 .info_pannel {
   position: absolute;
-  font-family: "Chivo Mono", monospace;
+  font-family: "Alte Has Grotesk Bold", sans-serif;
   text-align: right;
   width: 25vw;
   height: auto;
-  top: 2%;
+  bottom: 2%;
   right: 2%;
   margin: 0;
   display: flex;
@@ -57,24 +67,40 @@ button:hover{
   bottom: 2%;
   left: 2%;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5%;
-  font-family: "Chivo Mono", monospace;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1vh;
+  font-family: "Alte Has Grotesk Regular", sans-serif;
   color: #fff;
 }
 
 .progression_bar{
-  width: 15vw;
-  height: 20px;
+  --progression-segments: 10;
+  width: 25vw;
+  height: 3vh;
+  position: relative;
+  overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.8);
   background-color: rgba(0, 0, 0, 0.5);
 }
 #progression-fill,
 .progression_fill {
+  position: relative;
+  z-index: 1;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgb(255, 255, 255);
   width: 0%;
+}
+
+.progression-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 #generated-canvas-back-button {
@@ -84,7 +110,7 @@ button:hover{
   left: 2%;
   padding: 10px 20px;
   font-size: 16px;
-  font-family: "Chivo Mono", monospace;
+  font-family: "Alte Has Grotesk Regular", sans-serif;
   background-color: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: 2px solid rgba(255, 255, 255, 0.8);
@@ -99,11 +125,11 @@ button:hover{
 #generated-canvas-finish-button {
   position: fixed;
   z-index: 10001;
-  bottom: 2%;
+  top: 2%;
   right: 2%;
   padding: 10px 20px;
   font-size: 16px;
-  font-family: "Chivo Mono", monospace;
+  font-family: "Alte Has Grotesk Regular", sans-serif;
   background-color: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: 2px solid rgba(255, 255, 255, 0.8);
@@ -115,13 +141,32 @@ button:hover{
   color: #000;
 }
 
+.restartButton button {
+  position: fixed;
+  z-index: 10001;
+  top: 2%;
+  right: 2%;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: "Alte Has Grotesk Regular", sans-serif;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  pointer-events: auto;
+}
+.restartButton button:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+  cursor: pointer;
+}
+
 #message{
   position: fixed;
   z-index: 10002;
   top: 50%;
   left: 50%;
+  width: 60vw;
   transform: translate(-50%, -50%);
-  padding: 20px 40px;
   font-size: 24px;
   font-family: "Chivo Mono", monospace;
   background-color: rgba(0, 0, 0, 0.8);
@@ -141,6 +186,21 @@ button:hover{
 }
 .message_header{
   width: 100% ;
+  height: auto;
   display: flex;
   flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  border-bottom: #fff 2px solid;
+}
+.message-content{
+  text-align: center;
+  margin: 20px;
+}
+.close_message{
+  background: none;
+  border-right: solid rgba(255, 255, 255, 0.8) 2px;
+  font-size: 24px;
+  color: #fff;
+  cursor: pointer;
 }

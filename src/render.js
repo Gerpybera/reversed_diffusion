@@ -1,7 +1,7 @@
 import { cancelComfyRequest, runComfy } from "./api";
 import { getWebcamVideo, initWebcam, isWebcamReady } from "./webcam";
 export default class renderCanvas {
-  constructor(canvas, prompt = "default", onFirstImage = null) {
+  constructor(canvas, prompt = "default", seedKey = "", onFirstImage = null) {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext("2d");
     this.canvas.width = window.innerWidth;
@@ -19,7 +19,8 @@ export default class renderCanvas {
     this.renderIntervalMs = 500;
     this.generatedImage = null;
     this.baseSeed = 12345;
-    this.seed = this.computeSeedForPrompt(prompt || "default");
+    this.seedKey = String(seedKey || "");
+    this.seed = this.computeSeedForPrompt(prompt || "default", this.seedKey);
     this.defaultPrompt = prompt || "default";
     this.onFirstImage = onFirstImage;
     this.hasNotifiedFirstImage = false;
@@ -30,8 +31,8 @@ export default class renderCanvas {
     this.ensureWebcam();
     this.draw();
   }
-  computeSeedForPrompt(promptText) {
-    const text = String(promptText || "default");
+  computeSeedForPrompt(promptText, seedKeyText = "") {
+    const text = `${String(promptText || "default")}|${String(seedKeyText || "")}`;
     let hash = 2166136261;
 
     for (let i = 0; i < text.length; i += 1) {
@@ -143,13 +144,9 @@ export default class renderCanvas {
 
       const inputDataUrl = this.captureCanvas.toDataURL("image/png");
       const promptText = this.getPrompt();
-      const currentSeed = this.computeSeedForPrompt(promptText);
+      const currentSeed = this.computeSeedForPrompt(promptText, this.seedKey);
       this.seed = currentSeed;
-      const result = await runComfy(
-        inputDataUrl,
-        promptText,
-        currentSeed,
-      );
+      const result = await runComfy(inputDataUrl, promptText, currentSeed);
 
       if (this.isDisposed) {
         return;

@@ -8,6 +8,7 @@ import { preloadWorkflow } from "./api.js";
 const canvas = document.getElementById("canvas");
 const endMessageElement = document.getElementById("message");
 const closeEndMessageButton = document.getElementById("close_message");
+const restartButton = document.getElementById("restart-button");
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -36,9 +37,30 @@ const pings = [];
 const progressionFillElement = document.querySelector(
   "#progression-fill, #progression_fill, .progression_fill",
 );
+const progressionBarElement = document.querySelector(".progression_bar");
+
+function renderProgressionDividers(segmentCount) {
+  if (!progressionBarElement) {
+    return;
+  }
+
+  progressionBarElement
+    .querySelectorAll(".progression-divider")
+    .forEach((divider) => divider.remove());
+
+  const safeSegmentCount = Math.max(segmentCount, 1);
+
+  for (let index = 1; index < safeSegmentCount; index += 1) {
+    const divider = document.createElement("span");
+    divider.className = "progression-divider";
+    divider.style.left = `${(index / safeSegmentCount) * 100}%`;
+    progressionBarElement.appendChild(divider);
+  }
+}
 let finishClickCount = 0;
 let progression = 0;
 let isEndMessageDismissed = false;
+let isProgressionForcedComplete = false;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -107,7 +129,11 @@ scene.add(stars);
 
 function updateProgression() {
   const pinsCount = pings.length;
-  progression = pinsCount > 0 ? finishClickCount / pinsCount : 0;
+  progression = isProgressionForcedComplete
+    ? 1
+    : pinsCount > 0
+      ? finishClickCount / pinsCount
+      : 0;
 
   if (progressionFillElement) {
     const clampedProgress = THREE.MathUtils.clamp(progression, 0, 1);
@@ -118,6 +144,10 @@ function updateProgression() {
     endMessageElement.style.display = "block";
   } else {
     endMessageElement.style.display = "none";
+  }
+
+  if (restartButton) {
+    restartButton.style.display = progression >= 1 ? "block" : "none";
   }
 }
 
@@ -234,6 +264,14 @@ const pingLocations = [
     environnemental: "Polar",
   },
 ];
+
+if (progressionBarElement) {
+  progressionBarElement.style.setProperty(
+    "--progression-segments",
+    String(Math.max(pingLocations.length, 1)),
+  );
+}
+renderProgressionDividers(pingLocations.length);
 
 fbxLoader.load("Earth.fbx", (object) => {
   loadedEarth = object;
@@ -367,3 +405,17 @@ if (closeEndMessageButton && endMessageElement) {
     endMessageElement.style.display = "none";
   });
 }
+
+if (restartButton) {
+  restartButton.addEventListener("click", () => {
+    window.location.reload();
+  });
+}
+
+const isInDevelopment = true;
+window.addEventListener("keydown", (event) => {
+  if (isInDevelopment && event.key.toLowerCase() === "p") {
+    isProgressionForcedComplete = true;
+    updateProgression();
+  }
+});

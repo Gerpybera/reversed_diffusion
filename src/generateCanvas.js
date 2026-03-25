@@ -50,6 +50,7 @@ export default class generateCanvas {
 
     this.canvas = document.getElementById("generated-canvas");
     this.environmentPrompt = this.displayEnvironment(environnemental, info);
+    this.seedKey = this.buildSeedKey(environnemental, info);
     this.img = new Image();
     this.img.onload = () => {
       if (this.autoReveal) {
@@ -275,6 +276,7 @@ export default class generateCanvas {
     this.renderInstance = new render(
       this.canvas,
       this.environmentPrompt,
+      this.seedKey,
       () => {
         this.hasGeneratedImage = true;
         this.updateButtonsVisibility();
@@ -369,6 +371,26 @@ export default class generateCanvas {
         return "jungle, forest, bird view, 45 degree";
       case "Polar":
         return "arctic polar landscape, icy terrain, snow-covered mountains, cold atmosphere, dramatic lighting, cinematic composition";
+      case "Mountain":
+        return "mountainous landscape, rugged peaks, alpine scenery, dramatic lighting, cinematic composition";
+      case "Savannah":
+        return "savannah landscape, acacia trees, golden grasslands, warm atmosphere, dramatic lighting, cinematic composition";
+      case "Forest":
+        return "dense forest, tall trees, lush greenery, misty atmosphere, dramatic lighting, cinematic composition";
     }
+  }
+
+  buildSeedKey(environnemental, info = null) {
+    const environmentValue =
+      environnemental ?? info?.environnemental ?? "default";
+    const nameValue = info?.name ?? "unknown";
+    const latitudeValue =
+      typeof info?.latitude === "number" ? info.latitude.toFixed(6) : "na";
+    const longitudeValue =
+      typeof info?.longitude === "number" ? info.longitude.toFixed(6) : "na";
+
+    return [environmentValue, nameValue, latitudeValue, longitudeValue].join(
+      "|",
+    );
   }
 }
