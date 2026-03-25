@@ -1,0 +1,609 @@
+{
+  "id": "6c922f15-5949-4e36-9a82-c3c3efadc1e9",
+  "revision": 0,
+  "last_node_id": 62,
+  "last_link_id": 89,
+  "nodes": [
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [
+        354.84634629469537,
+        189.2829493752436
+      ],
+      "size": [
+        425.27801513671875,
+        180.6060791015625
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 39
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            20
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "text, watermark"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        349.67457774166286,
+        -29.86297559932204
+      ],
+      "size": [
+        422.84503173828125,
+        164.31304931640625
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "flowers"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        -88.94585126132614,
+        -4.628594245259997
+      ],
+      "size": [
+        343.69647216796875,
+        98
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            41,
+            45
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            38,
+            39
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 2,
+          "links": [
+            40,
+            82
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "sd_xl_turbo_1.0_fp16.safetensors"
+      ]
+    },
+    {
+      "id": 57,
+      "type": "VAEEncode",
+      "pos": [
+        559.9132106724251,
+        473.7296601179231
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 81
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 82
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            83
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEEncode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 14,
+      "type": "KSamplerSelect",
+      "pos": [
+        369.9818173383968,
+        -142.11719818269313
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler_ancestral"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "SamplerCustom",
+      "pos": [
+        924.5926041317722,
+        115.18387553539802
+      ],
+      "size": [
+        355.20001220703125,
+        230
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 41
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 19
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 20
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 18
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 49
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 83
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            28
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustom"
+      },
+      "widgets_values": [
+        true,
+        892518835996285,
+        "fixed",
+        1
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [
+        1277.6719140846453,
+        -67.10921193117335
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 28
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            84
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 58,
+      "type": "ImageToBase64",
+      "pos": [
+        1338.2739653599253,
+        372.0077558210487
+      ],
+      "size": [
+        270,
+        170
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 84
+        }
+      ],
+      "outputs": [
+        {
+          "name": "base64_string",
+          "type": "STRING",
+          "links": [
+            89
+          ]
+        },
+        {
+          "name": "data_url",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "size_bytes",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageToBase64"
+      },
+      "widgets_values": [
+        "JPEG",
+        95,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 62,
+      "type": "PreviewAny",
+      "pos": [
+        1679.1791520295153,
+        94.19521733027364
+      ],
+      "size": [
+        210,
+        166
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 89
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 30,
+      "type": "LoadImageFromBase64",
+      "pos": [
+        107.04330020661848,
+        462.40710253077174
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            81
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImageFromBase64"
+      },
+      "widgets_values": [
+        "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"
+      ]
+    },
+    {
+      "id": 22,
+      "type": "SDTurboScheduler",
+      "pos": [
+        412.7373078594102,
+        -299.0950179493469
+      ],
+      "size": [
+        315,
+        82
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "slot_index": 0,
+          "links": [
+            49
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SDTurboScheduler"
+      },
+      "widgets_values": [
+        1,
+        1
+      ]
+    }
+  ],
+  "links": [
+    [
+      18,
+      14,
+      0,
+      13,
+      3,
+      "SAMPLER"
+    ],
+    [
+      19,
+      6,
+      0,
+      13,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      20,
+      7,
+      0,
+      13,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      28,
+      13,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      38,
+      20,
+      1,
+      6,
+      0,
+      "CLIP"
+    ],
+    [
+      39,
+      20,
+      1,
+      7,
+      0,
+      "CLIP"
+    ],
+    [
+      40,
+      20,
+      2,
+      8,
+      1,
+      "VAE"
+    ],
+    [
+      41,
+      20,
+      0,
+      13,
+      0,
+      "MODEL"
+    ],
+    [
+      45,
+      20,
+      0,
+      22,
+      0,
+      "MODEL"
+    ],
+    [
+      49,
+      22,
+      0,
+      13,
+      4,
+      "SIGMAS"
+    ],
+    [
+      81,
+      30,
+      0,
+      57,
+      0,
+      "IMAGE"
+    ],
+    [
+      82,
+      20,
+      2,
+      57,
+      1,
+      "VAE"
+    ],
+    [
+      83,
+      57,
+      0,
+      13,
+      5,
+      "LATENT"
+    ],
+    [
+      84,
+      8,
+      0,
+      58,
+      0,
+      "IMAGE"
+    ],
+    [
+      89,
+      58,
+      0,
+      62,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.46877702497298546,
+      "offset": [
+        1366.8444809288624,
+        936.7931443625174
+      ]
+    },
+    "frontendVersion": "1.41.21"
+  },
+  "version": 0.4
+}

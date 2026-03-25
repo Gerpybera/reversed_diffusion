@@ -1,0 +1,146 @@
+body{
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+h1 {
+  margin: 0;
+  font-size: 4.5em;
+  line-height: 1.2;
+  font-weight: 200;
+}
+h3 {
+  margin: 0;
+  font-size: 2em;
+  line-height: 1.2;
+  font-weight: 200;
+}
+p {
+  font-weight: 50;
+  font-size: 1.5em;
+  line-height: 1.2;
+}
+button:hover{
+  cursor: pointer;
+}
+
+.interface_container{
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+
+
+.info_pannel {
+  position: absolute;
+  font-family: "Chivo Mono", monospace;
+  text-align: right;
+  width: 25vw;
+  height: auto;
+  top: 2%;
+  right: 2%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #fff;
+}
+
+.progression{
+  position: absolute;
+  bottom: 2%;
+  left: 2%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5%;
+  font-family: "Chivo Mono", monospace;
+  color: #fff;
+}
+
+.progression_bar{
+  width: 15vw;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+#progression-fill,
+.progression_fill {
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  width: 0%;
+}
+
+#generated-canvas-back-button {
+  position: fixed;
+  z-index: 10001;
+  top: 2%;
+  left: 2%;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: "Chivo Mono", monospace;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  pointer-events: auto;
+}
+#generated-canvas-back-button:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+}
+
+#generated-canvas-finish-button {
+  position: fixed;
+  z-index: 10001;
+  bottom: 2%;
+  right: 2%;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: "Chivo Mono", monospace;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  pointer-events: auto;
+}
+#generated-canvas-finish-button:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+}
+
+#message{
+  position: fixed;
+  z-index: 10002;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 40px;
+  font-size: 24px;
+  font-family: "Chivo Mono", monospace;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  display: none;
+  pointer-events: auto;
+}
+.close_message {
+  pointer-events: auto;
+}
+.message_container{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.message_header{
+  width: 100% ;
+  display: flex;
+  flex-direction: row;
+}
