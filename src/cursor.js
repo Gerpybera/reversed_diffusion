@@ -28,6 +28,8 @@ const expansionDuration = 200; // milliseconds for full expansion
 let expansionStartTime = 0;
 let animationFrameId = null;
 
+let displayDesign = true; // This variable is declared but not used in the provided code snippet. It may be used elsewhere in the application.
+
 function updateLineMode() {
   const wasLineLong = isLineLong;
   isLineLong = isOverButton || isInGeneratedCanvas || isOverPing;
@@ -98,6 +100,11 @@ function drawCursor(x, y) {
   cursorContext.moveTo(x, y - 10);
   cursorContext.lineTo(x, y + 10);
   cursorContext.stroke();
+
+  addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.01, 25, 180);
+  addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.01, 25, 270);
+  addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.9, 25, 90);
+  addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.9, 25, 0);
 }
 
 window.addEventListener("mousemove", (event) => {
@@ -140,4 +147,18 @@ window.addEventListener("ping-hover-changed", (event) => {
 window.addEventListener("resize", () => {
   cursorCanvas.width = window.innerWidth;
   cursorCanvas.height = window.innerHeight;
+  drawCursor(lastCursorX, lastCursorY);
 });
+
+function addCorner(x, y, size = 10, rotation = 0) {
+  cursorContext.save();
+  cursorContext.lineWidth = 2;
+  cursorContext.translate(x, y);
+  cursorContext.rotate(rotation * (Math.PI / 180));
+  cursorContext.beginPath();
+  cursorContext.moveTo(-size, 0);
+  cursorContext.lineTo(0, 0);
+  cursorContext.lineTo(0, -size);
+  cursorContext.stroke();
+  cursorContext.restore();
+}

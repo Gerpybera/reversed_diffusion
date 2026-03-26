@@ -39,12 +39,12 @@ export default class renderCanvas {
     this.frameId = null;
     this.isDisposed = false;
     this.webcamInitAttempted = false;
-    this.backgroundImage = null;
     this.parallaxMaxOffset = 14;
     this.parallaxTargetX = 0;
     this.parallaxTargetY = 0;
     this.parallaxCurrentX = 0;
     this.parallaxCurrentY = 0;
+    this.frameImage = null;
     this.handlePointerMove = (event) => {
       if (this.isDisposed) {
         return;
@@ -63,7 +63,7 @@ export default class renderCanvas {
     this.ensureWebcam();
     window.addEventListener("pointermove", this.handlePointerMove);
     window.addEventListener("mouseleave", this.handlePointerLeave);
-    this.loadBackgroundImage();
+    this.loadFrameImage();
     this.setInitialDisplayImage(initialImageDataUrl);
     this.draw();
   }
@@ -102,22 +102,15 @@ export default class renderCanvas {
       console.error("Unable to initialize webcam:", error);
     });
   }
-  async loadBackgroundImage() {
+  async loadFrameImage() {
     if (this.isDisposed) {
       return;
     }
-
     try {
-      this.backgroundImage = await this.loadImage("/generating-background.png");
-      console.log(
-        "Background image loaded successfully:",
-        this.backgroundImage,
-      );
+      this.frameImage = await this.loadImage("/frame.png");
+      console.log("Frame image loaded successfully:", this.frameImage);
     } catch (error) {
-      console.error(
-        "Failed to load background image from /generating-background.png:",
-        error,
-      );
+      console.error("Failed to load frame image from /frame.png:", error);
     }
   }
   drawVideoCover(ctx, video, targetWidth, targetHeight) {
@@ -170,28 +163,31 @@ export default class renderCanvas {
       (this.parallaxTargetX - this.parallaxCurrentX) * 0.08;
     this.parallaxCurrentY +=
       (this.parallaxTargetY - this.parallaxCurrentY) * 0.08;
-    const bgImgSize = Math.min(this.canvas.width, this.canvas.height) * 0.9;
 
-    // Draw background image if available, otherwise black background
-    if (this.backgroundImage) {
-      this.ctx.fillStyle = "#000000";
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(
-        this.backgroundImage,
-        this.canvas.width * 0.5 - bgImgSize * 0.5,
-        this.canvas.height * 0.5 - bgImgSize * 0.5,
-        bgImgSize,
-        bgImgSize,
-      );
-    } else {
-      this.ctx.fillStyle = "#000000";
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
+    this.ctx.fillStyle = "#000000";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.displayGeneratedImage();
 
     if (this.isRendering && !this.generatedImage) {
       this.waitScreen();
+    }
+
+    if (this.frameImage) {
+      const maxSize = Math.min(this.canvas.width, this.canvas.height) * 0.75;
+      const displaySize = Math.max(512, maxSize);
+      const frameParallaxX = this.parallaxCurrentX * 1.5;
+      const frameParallaxY = this.parallaxCurrentY * 1.5;
+      const sizeFactor = 1.25;
+      const frameX = (this.canvas.width - displaySize * sizeFactor) * 0.5;
+      const frameY = (this.canvas.height - displaySize * sizeFactor) * 0.5;
+      this.ctx.drawImage(
+        this.frameImage,
+        frameX,
+        frameY,
+        displaySize * sizeFactor,
+        displaySize * sizeFactor,
+      );
     }
   }
   getPrompt() {

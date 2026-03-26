@@ -15,15 +15,29 @@ const selectionAudio = new Audio("/selection.mp3");
 selectionAudio.preload = "auto";
 const backAudio = new Audio("/back.mp3");
 backAudio.preload = "auto";
-const hoverAudio = new Audio("/hover.mp3");
-hoverAudio.preload = "auto";
+const hoverAudios = [
+  new Audio("/hover.mp3"),
+  new Audio("/hover1.mp3"),
+  new Audio("/hover2.mp3"),
+  new Audio("/hover3.mp3"),
+  new Audio("/hover4.mp3"),
+];
+hoverAudios.forEach((audio) => {
+  audio.preload = "auto";
+});
 const constructionAudio = new Audio("/construction.mp3");
 constructionAudio.preload = "auto";
 const spaceAmbientAudio = new Audio("/space.mp3");
 spaceAmbientAudio.preload = "auto";
 spaceAmbientAudio.loop = true;
+const satelitAmbientAudio = new Audio("/satelit.mp3");
+satelitAmbientAudio.preload = "auto";
+satelitAmbientAudio.loop = true;
+satelitAmbientAudio.volume = 0.1;
 
 function playHoverAudio() {
+  const randomIndex = Math.floor(Math.random() * hoverAudios.length);
+  const hoverAudio = hoverAudios[randomIndex];
   hoverAudio.currentTime = 0;
   hoverAudio.play().catch(() => {});
 }
@@ -35,10 +49,12 @@ function shouldPlaySpaceAmbient() {
 function updateSpaceAmbientPlayback() {
   if (shouldPlaySpaceAmbient()) {
     spaceAmbientAudio.play().catch(() => {});
+    satelitAmbientAudio.play().catch(() => {});
     return;
   }
 
   spaceAmbientAudio.pause();
+  satelitAmbientAudio.pause();
 }
 
 const scene = new THREE.Scene();

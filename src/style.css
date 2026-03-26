@@ -54,7 +54,7 @@ button:hover{
 
 
 .info-header{
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "IBM Plex mono", sans-serif;
   color: #fff;
   position: absolute;
   bottom: 0;
@@ -82,7 +82,7 @@ button:hover{
   align-items: flex-start;
   text-align: right;
   gap: 0.1vh;
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "IBM Plex mono", sans-serif;
   color: #fff;
 }
 

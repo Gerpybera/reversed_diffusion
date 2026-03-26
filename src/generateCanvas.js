@@ -79,7 +79,7 @@ export default class generateCanvas {
     this.finishedSnapshotDataUrl = finishedSnapshotDataUrl;
     this.initialTransitionSnapshotDataUrl = initialTransitionSnapshotDataUrl;
     this.finishedSnapshotImage = null;
-    this.generatingBackgroundImage = null;
+    this.frameImage = null;
     this.hasGeneratedImage = Boolean(finishedSnapshotDataUrl);
     this.transitionDuration = 200;
     this.isActive = true;
@@ -237,7 +237,7 @@ export default class generateCanvas {
     if (!this.ctx) {
       return;
     }
-    this.loadGeneratingBackgroundImage();
+    this.loadFrameImage();
     this.resizeCanvas();
     this.draw();
     if (this.img.complete && this.autoReveal) {
@@ -264,6 +264,17 @@ export default class generateCanvas {
     };
 
     image.src = "/generating-background.png";
+  }
+  async loadFrameImage() {
+    if (this.isDisposed) {
+      return;
+    }
+    try {
+      this.frameImage = await this.loadImage("/frame.png");
+      console.log("Frame image loaded successfully:", this.frameImage);
+    } catch (error) {
+      console.error("Failed to load frame image from /frame.png:", error);
+    }
   }
   captureSnapshot() {
     if (!this.canvas) {
@@ -655,24 +666,20 @@ export default class generateCanvas {
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-      if (this.generatingBackgroundImage) {
-        const backgroundSize =
-          Math.min(this.canvas.width, this.canvas.height) * 0.9;
-        const backgroundX =
-          (this.canvas.width - backgroundSize) * 0.5 - this.parallaxX * 0.2;
-        const backgroundY =
-          (this.canvas.height - backgroundSize) * 0.5 - this.parallaxY * 0.2;
+      this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
 
+      if (this.frameImage) {
+        const sizeFactor = 1.5;
+        const frameX = (this.canvas.width - displaySize * sizeFactor) * 0.5;
+        const frameY = (this.canvas.height - displaySize * sizeFactor) * 0.5;
         this.ctx.drawImage(
-          this.generatingBackgroundImage,
-          backgroundX,
-          backgroundY,
-          backgroundSize,
-          backgroundSize,
+          this.frameImage,
+          frameX,
+          frameY,
+          displaySize * sizeFactor,
+          displaySize * sizeFactor,
         );
       }
-
-      this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
     };
 
     if (this.finishedSnapshotImage?.complete) {
