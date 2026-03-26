@@ -3,7 +3,7 @@ import { FBXLoader } from "three/examples/jsm/Addons.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Ping from "./ping.js";
 import { preloadWorkflow } from "./api.js";
-//import { initWebcam } from "./webcam.js";
+import { initWebcam } from "./webcam.js";
 
 const canvas = document.getElementById("canvas");
 const endMessageElement = document.getElementById("message");
@@ -26,11 +26,9 @@ preloadWorkflow().catch((error) => {
   console.error("Error preloading workflow:", error);
 });
 
-/*
 initWebcam().catch((error) => {
   console.error("Error preloading webcam:", error);
 });
-*/
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const pings = [];
@@ -85,6 +83,8 @@ const reflectionStrength = 0.01;
 const starCount = 3000;
 const starMinDistance = 1200;
 const starMaxDistance = 4000;
+const starSize = 1.8;
+const starRotationSpeed = 0.0002;
 
 function createStars(
   count = starCount,
@@ -115,7 +115,7 @@ function createStars(
 
   const material = new THREE.PointsMaterial({
     color: 0xffffff,
-    size: 1,
+    size: starSize,
     sizeAttenuation: false,
     transparent: true,
     opacity: 0.9,
@@ -199,6 +199,21 @@ const pingLocations = [
     longitude: 12.990920566044199,
     color: colorPing,
     environnemental: "Desert",
+    panelInfo: {
+      title: "SAHARA ROCK DESERT   |   23°N 13°E",
+      body: [
+        "ERG & REG — ALGERIA / NIGER",
+        "9,200,000 KM²",
+        "RAINFALL: 25 MM/YEAR",
+        "MAX TEMP: 58°C / MIN TEMP: −6°C",
+        "ALT: 200–3,415 M",
+        "SOIL TYPE: SANDY / GRAVEL",
+        "BIODIVERSITY INDEX: 2.1 / 10",
+        "ENDEMIC SPECIES: 9",
+        "STATUS: UNPROTECTED",
+        "THREAT: SOLAR FARM DEVELOPMENT",
+      ],
+    },
   },
   {
     name: "Amazonas",
@@ -206,6 +221,21 @@ const pingLocations = [
     longitude: -62.21607226123021,
     color: colorPing,
     environnemental: "Rainforest",
+    panelInfo: {
+      title: "AMAZON RAINFOREST   |   3°S 60°W",
+      body: [
+        "TROPICAL FOREST — BRAZIL",
+        "5,500,000 KM²",
+        "RAINFALL: 2,300 MM/YEAR",
+        "MAX TEMP: 34°C / MIN TEMP: 18°C",
+        "ALT: 50–500 M",
+        "SOIL TYPE: LATERITE / CLAY",
+        "BIODIVERSITY INDEX: 9.8 / 10",
+        "ENDEMIC SPECIES: 40,000+",
+        "STATUS: PARTIALLY PROTECTED",
+        "THREAT: DEFORESTATION / AGRIBUSINESS",
+      ],
+    },
   },
   {
     name: "Antarctica",
@@ -213,6 +243,21 @@ const pingLocations = [
     longitude: 132.97852379415448,
     color: colorPing,
     environnemental: "Polar",
+    panelInfo: {
+      title: "ANTARCTICA   |   90°S 0°E",
+      body: [
+        "ICE DESERT — SOUTH POLE",
+        "14,200,000 KM²",
+        "SNOWFALL: 166 MM/YEAR",
+        "MAX TEMP: −12°C / MIN TEMP: −89°C",
+        "ALT: 0–4,892 M",
+        "SOIL TYPE: PERMANENT ICE SHEET",
+        "BIODIVERSITY INDEX: 1.4 / 10",
+        "ENDEMIC SPECIES: 235",
+        "STATUS: INTL. TREATY — ANTARCTIC ACT 1959",
+        "THREAT: CLIMATE CHANGE / MINING CLAIMS",
+      ],
+    },
   },
   {
     name: "Swiss Alps",
@@ -220,6 +265,21 @@ const pingLocations = [
     longitude: 7.360406506270741,
     color: colorPing,
     environnemental: "Mountain",
+    panelInfo: {
+      title: "THE ALPS   |   45°N 7°E",
+      body: [
+        "MOUNTAIN RANGE — CENTRAL EUROPE",
+        "190,000 KM²",
+        "RAINFALL: 1,500 MM/YEAR",
+        "MAX TEMP: 25°C / MIN TEMP: −30°C",
+        "ALT: 200–4,808 M",
+        "SOIL TYPE: ALPINE / ROCKY",
+        "BIODIVERSITY INDEX: 7.1 / 10",
+        "ENDEMIC SPECIES: 4,500+",
+        "STATUS: PARTIALLY PROTECTED",
+        "THREAT: RESORT OVERDEVELOPMENT",
+      ],
+    },
   },
   {
     name: "Nez Perce-Clearwater National Forests",
@@ -227,6 +287,21 @@ const pingLocations = [
     longitude: -115.35479191268243,
     color: colorPing,
     environnemental: "Forest",
+    panelInfo: {
+      title: "YELLOWSTONE   |   44°N 110°W",
+      body: [
+        "BOREAL FOREST — USA",
+        "898,317 HA",
+        "RAINFALL: 560 MM/YEAR",
+        "MAX TEMP: 30°C / MIN TEMP: −40°C",
+        "ALT: 1,610–3,462 M",
+        "SOIL TYPE: VOLCANIC / GEOTHERMAL",
+        "BIODIVERSITY INDEX: 8.4 / 10",
+        "ENDEMIC SPECIES: 10,000+",
+        "STATUS: NATIONAL PARK — EST. 1872",
+        "THREAT: GEOTHERMAL EXPLOITATION",
+      ],
+    },
   },
   {
     name: "Parque Nacional Iberá",
@@ -234,13 +309,43 @@ const pingLocations = [
     longitude: -57.32889718284382,
     color: colorPing,
     environnemental: "Forest",
+    panelInfo: {
+      title: "PATAGONIA   |   49°S 72°W",
+      body: [
+        "STEPPE & GLACIERS — ARGENTINA",
+        "1,043,000 KM²",
+        "RAINFALL: 200 MM/YEAR",
+        "MAX TEMP: 22°C / MIN TEMP: −22°C",
+        "ALT: 0–3,375 M",
+        "SOIL TYPE: GLACIAL / STEPPE",
+        "BIODIVERSITY INDEX: 6.3 / 10",
+        "ENDEMIC SPECIES: 1,800+",
+        "STATUS: PARTIALLY PROTECTED",
+        "THREAT: LITHIUM MINING / WIND FARMS",
+      ],
+    },
   },
   {
     name: "Khatgal, Mongolia",
     latitude: 50.81892827683729,
     longitude: 99.84958212036852,
     color: colorPing,
-    environnemental: "Mountain",
+    environnemental: "Desert mountain",
+    panelInfo: {
+      title: "GOBI DESERT   |   46°N 105°E",
+      body: [
+        "ARID ZONE — MONGOLIA / CHINA",
+        "1,295,000 KM²",
+        "RAINFALL: 194 MM/YEAR",
+        "MAX TEMP: 45°C / MIN TEMP: −40°C",
+        "ALT: 900–1,500 M",
+        "SOIL TYPE: ROCKY / SANDY",
+        "BIODIVERSITY INDEX: 3.2 / 10",
+        "ENDEMIC SPECIES: 14",
+        "STATUS: UNPROTECTED",
+        "THREAT: MINING EXPANSION",
+      ],
+    },
   },
   {
     name: "Mount Kailash, Tibet",
@@ -248,6 +353,21 @@ const pingLocations = [
     longitude: 88.8335682436747,
     color: colorPing,
     environnemental: "Mountain",
+    panelInfo: {
+      title: "MOUNT KAILASH   |   31°N 81°E",
+      body: [
+        "SACRED HIMALAYA — TIBET",
+        "2,000 KM²",
+        "RAINFALL: 150 MM/YEAR",
+        "MAX TEMP: 10°C / MIN TEMP: −25°C",
+        "ALT: 4,500–6,638 M",
+        "SOIL TYPE: PERMAFROST / ROCK",
+        "BIODIVERSITY INDEX: 5.9 / 10",
+        "ENDEMIC SPECIES: 600+",
+        "STATUS: SACRED ZONE — NO ASCENT PERMITTED",
+        "THREAT: TOURIST INFRASTRUCTURE",
+      ],
+    },
   },
   {
     name: "Mugie Wildlife Conservancy, Kenya",
@@ -255,13 +375,39 @@ const pingLocations = [
     longitude: 36.629661633279454,
     color: colorPing,
     environnemental: "Savannah",
+    panelInfo: {
+      title: "KENYA SAVANNA   |   1°S 37°E",
+      body: [
+        "TROPICAL SAVANNA — KENYA",
+        "580,000 KM²",
+        "RAINFALL: 630 MM/YEAR",
+        "MAX TEMP: 35°C / MIN TEMP: 10°C",
+        "ALT: 0–5,199 M",
+        "SOIL TYPE: SAVANNA / CLAY",
+        "BIODIVERSITY INDEX: 9.1 / 10",
+        "MAMMAL SPECIES: 389",
+        "STATUS: NATURE RESERVE",
+        "THREAT: POACHING / RESORT EXPANSION",
+      ],
+    },
   },
   {
-    name: "Svalbard, Norway",
-    latitude: 79.89499148912479,
-    longitude: 24.04334737393937,
+    name: "Neom Bay, Saudi Arabia",
+    latitude: 28.65241394358527,
+    longitude: 35.31125930979096,
     color: colorPing,
-    environnemental: "Polar",
+    environnemental: "Desert",
+    panelInfo: {
+      title: "NEOM — TABUK REGION   |   28°N 35°E",
+      body: [
+        "ARID COAST — SAUDI ARABIA",
+        "SURFACE: 26,500 KM² | RAINFALL: 30 MM/YEAR",
+        "MAX TEMP: 47°C / MIN TEMP: 5°C",
+        "BIODIVERSITY: 4.8/10 | COASTAL SPECIES: 1,200+",
+        "STATUS: DEVELOPMENT ZONE | THREAT: MEGA PROJECT CONSTRUCTION",
+        "ALT: 0–2,500 M | SOIL TYPE: DESERT / CORAL COAST",
+      ],
+    },
   },
 ];
 
@@ -281,7 +427,7 @@ fbxLoader.load("Earth.fbx", (object) => {
   earthTiltGroup.rotation.z = THREE.MathUtils.degToRad(earthTiltDegrees);
   earthTiltGroup.add(object);
 
-  const earthTexture = textureLoader.load("1_earth_8k.jpg");
+  const earthTexture = textureLoader.load("1_earth_8kv2.jpg");
   object.children[0].material.map = earthTexture;
   setReflectionStrength(object.children[0].material, reflectionStrength);
   scene.add(earthTiltGroup);
@@ -325,15 +471,18 @@ fbxLoader.load("Earth.fbx", (object) => {
 });
 
 // Lighting
-const light = new THREE.DirectionalLight(0xffffff, 1.5);
+const light = new THREE.DirectionalLight(0xffffff, 2);
 light.position.set(5, 0, 5);
 scene.add(light);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
 scene.add(ambientLight);
 
 function animate() {
   controls.update();
+  if (stars) {
+    stars.rotation.y += starRotationSpeed;
+  }
   if (loadedEarth) {
     loadedEarth.rotation.y += 0.001;
     const isAnyPingZooming = pings.some((ping) => ping.isZoomTransitioning);
@@ -344,7 +493,7 @@ function animate() {
     const hoveredMesh =
       intersections.length > 0 ? intersections[0].object : null;
     document.body.style.cursor =
-      !isAnyPingZooming && hoveredMesh ? "pointer" : "default";
+      !isAnyPingZooming && hoveredMesh ? "pointer" : "crosshair";
 
     for (const ping of pings) {
       ping.setHovered(ping.mesh === hoveredMesh);
@@ -412,7 +561,7 @@ if (restartButton) {
   });
 }
 
-const isInDevelopment = false;
+const isInDevelopment = true;
 window.addEventListener("keydown", (event) => {
   if (isInDevelopment && event.key.toLowerCase() === "p") {
     isProgressionForcedComplete = true;

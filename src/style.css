@@ -12,11 +12,12 @@ body{
   margin: 0;
   padding: 0;
   overflow: hidden;
+  cursor: crosshair;
 }
 
 h1 {
   margin: 0;
-  font-size: 4.5em;
+  font-size: 3em;
   line-height: 1.2;
   font-weight: 200;
 }
@@ -42,35 +43,43 @@ button:hover{
   left: 0;
   width: 100vw;
   height: 100vh;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   pointer-events: none;
 }
 
 
-
-.info_pannel {
-  position: absolute;
-  font-family: "Alte Has Grotesk Bold", sans-serif;
-  text-align: right;
-  width: 25vw;
-  height: auto;
-  bottom: 2%;
-  right: 2%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.info-header{
+  font-family: "IBM Plex Sans", sans-serif;
   color: #fff;
+  position: absolute;
+  bottom: 0;
+  width: 100vw;
+  height: 8vh;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  background-color: black;
+  border-top: #fff 2px solid;
+}
+
+.info-header h1{
+  line-height: 1.2;
+  letter-spacing: 5px;
+  font-weight: 300;
 }
 
 .progression{
-  position: absolute;
-  bottom: 2%;
-  left: 2%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1vh;
-  font-family: "Alte Has Grotesk Regular", sans-serif;
+  text-align: right;
+  gap: 0.1vh;
+  font-family: "IBM Plex Sans", sans-serif;
   color: #fff;
 }
 
@@ -106,8 +115,8 @@ button:hover{
 #generated-canvas-back-button {
   position: fixed;
   z-index: 10001;
-  top: 2%;
-  left: 2%;
+  top: 1%;
+  left: 1%;
   padding: 10px 20px;
   font-size: 16px;
   font-family: "Alte Has Grotesk Regular", sans-serif;
@@ -125,8 +134,8 @@ button:hover{
 #generated-canvas-finish-button {
   position: fixed;
   z-index: 10001;
-  top: 2%;
-  right: 2%;
+  top: 1%;
+  right: 1%;
   padding: 10px 20px;
   font-size: 16px;
   font-family: "Alte Has Grotesk Regular", sans-serif;
@@ -144,8 +153,8 @@ button:hover{
 .restartButton button {
   position: fixed;
   z-index: 10001;
-  top: 2%;
-  right: 2%;
+  top: 1%;
+  right: 1%;
   padding: 10px 20px;
   font-size: 16px;
   font-family: "Alte Has Grotesk Regular", sans-serif;
@@ -203,4 +212,129 @@ button:hover{
   font-size: 24px;
   color: #fff;
   cursor: pointer;
+}
+
+.construction-pannel{
+  position: fixed;
+  z-index: 10002;
+  top: 50%;
+  right: 1%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  font-family: "Chivo Mono", monospace;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  pointer-events: auto;
+  display: none;
+}
+
+.construction_container{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.construction_header{
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: #fff 2px solid;
+}
+
+.construction-title{
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.construction_header h2{
+  font-size: 1em;
+  text-align: center;
+  font-weight: 300;
+}
+
+.construction_content{
+  text-align: center;
+  margin: 20px;
+}
+
+.close_construction{
+  pointer-events: auto;
+  background: none;
+  border: none;
+  border-right: solid rgba(255, 255, 255, 0.8) 2px;
+  font-size: 24px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.construction_buttons{
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.construction_buttons button{
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: "Alte Has Grotesk Regular", sans-serif;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+.construction_buttons button:hover{
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+  cursor: pointer;
+}
+
+.location-info-panel{
+  position: fixed;
+  z-index: 10002;
+  top: 30%;
+  left: 1%;
+  transform: translateY(-50%);
+  width: 19vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-size: 1em;
+  font-family: "Chivo Mono", monospace;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  pointer-events: auto;
+  display: none;
+}
+
+.location-info_container{
+  display: flex;
+  flex-direction: column;
+}
+
+.location-info_header{
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+}
+
+.location-info_header h2{
+  margin: 0;
+  font-size: 1em;
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+.location-info_content{
+  padding: 14px 16px 18px;
+  line-height: 1.45;
+  white-space: pre-line;
 }

@@ -7,6 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
     <title>00-pj-stream-diffusion</title>
   </head>
@@ -14,9 +17,38 @@
     <div class="container">
       <canvas id="canvas"></canvas>
       <div class="interface_container">
-        <div class="info_pannel">
-          <h1 id="info-title">WILD<br>DESTROYER</h1>
-          <p id="info-description">Create your infrastructure in wild environments</p>
+        <div class="info-header">
+            <h1 id="info-title">WILD DESTROYER</h1>
+            <p id="info-description">Create your infrastructure in wild environments</p>
+          <div class="progression">
+            <div class="progression_bar">
+              <div class="progression_fill" id="progression-fill"></div>
+            </div>
+          </div>
+        </div>
+        <div class="construction-pannel">
+          <div class="construction_container">
+            <div class="construction_header">
+              <div class="construction-title">
+                <h2>Construction</h2>
+              </div>
+            </div>
+            <div class="construction_content" id="construction-content">
+              <div class="construction_buttons">
+                <button id="build-building">Build Building</button>
+                <button id="upgrade-building">Upgrade Building</button>
+                <button id="demolish-building">Demolish Building</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="location-info-panel" id="location-info-panel">
+          <div class="location-info_container">
+            <div class="location-info_header">
+              <h2 id="location-info-title"></h2>
+            </div>
+            <div class="location-info_content" id="location-info-content"></div>
+          </div>
         </div>
         <div class="message" id="message">
           <div class="message_container">
@@ -24,12 +56,6 @@
               <button class="close_message" id="close_message">✕</button>
             </div>
             <p class="message-content">Congratulations! You have successfully created all of your infrastructure around the world.<br>Climate is declining, famine is on the rise, but all of the money you will make from this venture will be used to fund further destruction of the environment.<br>Enjoy all of buildings, while the world is turning to an uninhabitable landscape.</p>
-          </div>
-        </div>
-        <div class="progression">
-          <h3>Progression</h3>
-          <div class="progression_bar">
-            <div class="progression_fill" id="progression-fill"></div>
           </div>
         </div>
         <div class="restartButton">

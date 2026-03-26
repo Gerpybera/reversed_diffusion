@@ -1,23 +1,35 @@
 import { cancelComfyRequest, runComfy } from "./api";
 import { getWebcamVideo, initWebcam, isWebcamReady } from "./webcam";
 export default class renderCanvas {
-  constructor(canvas, prompt = "default", seedKey = "", onFirstImage = null) {
+  constructor(
+    canvas,
+    prompt = "default",
+    seedKey = "",
+    onFirstImage = null,
+    initialImageDataUrl = null,
+  ) {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext("2d");
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
     this.ctx = this.canvas.getContext("2d");
 
-    this.captureSize = 512;
+    this.captureSize = 800;
     this.captureCanvas = document.createElement("canvas");
     this.captureCanvas.width = this.captureSize;
     this.captureCanvas.height = this.captureSize;
     this.captureCtx = this.captureCanvas.getContext("2d");
 
     this.isRendering = false;
+    this.lastGeneratedImageDataUrl = null;
     this.lastRenderTime = 0;
     this.renderIntervalMs = 500;
     this.generatedImage = null;
+    this.displayImage = null;
+    this.transitionFromImage = null;
+    this.transitionToImage = null;
+    this.transitionStartTime = 0;
+    this.transitionDurationMs = 700;
     this.baseSeed = 12345;
     this.seedKey = String(seedKey || "");
     this.seed = this.computeSeedForPrompt(prompt || "default", this.seedKey);
@@ -29,7 +41,20 @@ export default class renderCanvas {
     this.webcamInitAttempted = false;
 
     this.ensureWebcam();
+    this.setInitialDisplayImage(initialImageDataUrl);
     this.draw();
+  }
+  async setInitialDisplayImage(imageDataUrl) {
+    if (!imageDataUrl || this.isDisposed) {
+      return;
+    }
+
+    const image = await this.loadImage(imageDataUrl);
+    if (!image || this.isDisposed) {
+      return;
+    }
+
+    this.displayImage = image;
   }
   computeSeedForPrompt(promptText, seedKeyText = "") {
     const text = `${String(promptText || "default")}|${String(seedKeyText || "")}`;
@@ -155,6 +180,8 @@ export default class renderCanvas {
       if (result?.ok && result.firstImage) {
         const img = await this.loadImage(result.firstImage);
         if (img && !this.isDisposed) {
+          this.lastGeneratedImageDataUrl = result.firstImage;
+          this.startImageTransition(img);
           this.generatedImage = img;
           if (!this.hasNotifiedFirstImage) {
             this.hasNotifiedFirstImage = true;
@@ -186,34 +213,77 @@ export default class renderCanvas {
     this.lastRenderTime = now;
     this.requestRender();
   }
+  startImageTransition(nextImage) {
+    if (!nextImage || this.isDisposed) {
+      return;
+    }
+
+    const currentImage =
+      this.transitionToImage || this.displayImage || this.generatedImage;
+
+    if (!currentImage) {
+      this.displayImage = nextImage;
+      this.transitionFromImage = null;
+      this.transitionToImage = null;
+      this.transitionStartTime = 0;
+      return;
+    }
+
+    this.transitionFromImage = currentImage;
+    this.transitionToImage = nextImage;
+    this.transitionStartTime = performance.now();
+    this.displayImage = nextImage;
+  }
+  drawGeneratedImage(image, alpha = 1) {
+    if (!image || alpha <= 0 || this.isDisposed) {
+      return;
+    }
+
+    // Scale image to 75% of available space, maintaining square aspect ratio
+    const maxSize = Math.min(this.canvas.width, this.canvas.height) * 0.75;
+    const displaySize = Math.max(512, maxSize);
+    const drawX = (this.canvas.width - displaySize) * 0.5;
+    const drawY = (this.canvas.height - displaySize) * 0.5;
+
+    this.ctx.save();
+    this.ctx.globalAlpha = Math.min(1, Math.max(0, alpha));
+    this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
+    this.ctx.restore();
+  }
   displayGeneratedImage() {
     if (this.isDisposed) {
       return;
     }
 
-    if (this.generatedImage) {
+    if (this.transitionToImage && this.transitionFromImage) {
+      const elapsed = performance.now() - this.transitionStartTime;
+      const progress = Math.min(elapsed / this.transitionDurationMs, 1);
+
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(
-        this.generatedImage,
-        this.canvas.width / 2 - this.canvas.height / 2,
-        0,
-        this.canvas.height,
-        this.canvas.height,
-      );
+
+      this.drawGeneratedImage(this.transitionToImage, 1);
+      this.drawGeneratedImage(this.transitionFromImage, 1 - progress);
+
+      if (progress >= 1) {
+        this.transitionFromImage = null;
+        this.transitionToImage = null;
+      }
       return;
     }
 
-    const video = getWebcamVideo();
-
-    if (!isWebcamReady() || !video) {
+    if (this.displayImage) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.drawGeneratedImage(this.displayImage, 1);
       return;
     }
 
-    this.drawVideoCover(this.ctx, video, this.canvas.width, this.canvas.height);
+    // Show black background instead of webcam during rendering
+    this.ctx.fillStyle = "#000";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   dispose() {
@@ -225,15 +295,21 @@ export default class renderCanvas {
     }
   }
   waitScreen() {
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    /*
+    this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    */
     this.ctx.fillStyle = "#fff";
-    this.ctx.font = "30px Arial";
-    this.ctx.textAlign = "center";
+    this.ctx.font = "30px Alte Has Grotesk Regular, sans-serif";
+    this.ctx.textAlign = "left";
     this.ctx.fillText(
-      "Generating image, please wait...",
-      this.canvas.width / 2,
-      this.canvas.height / 2,
+      "Connecting to location...",
+      this.canvas.width * 0.02,
+      this.canvas.height * 0.95,
     );
+  }
+
+  getGeneratedImageDataUrl() {
+    return this.lastGeneratedImageDataUrl;
   }
 }

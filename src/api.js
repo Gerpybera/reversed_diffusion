@@ -5,7 +5,7 @@ let currentWorkflowPath = null;
 let workflowDropdownInitialized = false;
 const workflowCache = new Map();
 
-const workflowModules = import.meta.glob("./workflows/wildbreaker-SIMPLEV5.json");
+const workflowModules = import.meta.glob("./workflows/sdxlturbo_b64_V3.json");
 const defaultWorkflowPath = Object.keys(workflowModules)[0] ?? null;
 
 function setStatus(text) {
@@ -169,18 +169,25 @@ function applyWorkflowInputs(workflow, dataUrl, promptText, seed) {
 
   // Prefer node 78 (jungle prompt), but fall back to other positive prompt nodes
   let textNode = null;
-  
-  if (workflow["78"] && workflow["78"].class_type === "CLIPTextEncode" && "text" in workflow["78"].inputs) {
+
+  if (
+    workflow["78"] &&
+    workflow["78"].class_type === "CLIPTextEncode" &&
+    "text" in workflow["78"].inputs
+  ) {
     textNode = workflow["78"];
   } else {
     const clipTextNodes = Object.entries(workflow).filter(
-      ([, node]) => node && node.class_type === "CLIPTextEncode" && "text" in node.inputs,
+      ([, node]) =>
+        node && node.class_type === "CLIPTextEncode" && "text" in node.inputs,
     );
 
     // Prefer likely positive prompt nodes and avoid obvious negative prompts.
     textNode = clipTextNodes.find(([, node]) => {
       const text = String(node.inputs.text || "").toLowerCase();
-      return !/(watermark|blurry|deformed|ugly|low quality|negative)/.test(text);
+      return !/(watermark|blurry|deformed|ugly|low quality|negative)/.test(
+        text,
+      );
     })?.[1];
   }
 
@@ -267,10 +274,7 @@ function findImageDescriptorInValue(value) {
   }
 
   if (typeof value === "object") {
-    if (
-      typeof value.filename === "string" &&
-      typeof value.type === "string"
-    ) {
+    if (typeof value.filename === "string" && typeof value.type === "string") {
       return {
         filename: value.filename,
         subfolder: typeof value.subfolder === "string" ? value.subfolder : "",

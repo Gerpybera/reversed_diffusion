@@ -3,6 +3,20 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import generateCanvas from "./generateCanvas";
 
 export default class Ping {
+  static lastViewedSnapshotDataUrl = null;
+
+  static setLastViewedSnapshot(snapshotDataUrl) {
+    if (!snapshotDataUrl) {
+      return;
+    }
+
+    Ping.lastViewedSnapshotDataUrl = snapshotDataUrl;
+  }
+
+  static getLastViewedSnapshot() {
+    return Ping.lastViewedSnapshotDataUrl;
+  }
+
   constructor(
     posX,
     posY,
@@ -38,6 +52,7 @@ export default class Ping {
       return;
     }
     this.finishedSnapshotDataUrl = imageDataUrl;
+    Ping.setLastViewedSnapshot(imageDataUrl);
   }
 
   getScreenFadeOverlay() {
@@ -288,7 +303,10 @@ export default class Ping {
           environnemental,
           info,
           revealOrigin,
-          () => {
+          (snapshotDataUrl = null) => {
+            if (snapshotDataUrl) {
+              Ping.setLastViewedSnapshot(snapshotDataUrl);
+            }
             this.zoomOut(camera, controls, 500);
           },
           this.isFinished
@@ -305,6 +323,7 @@ export default class Ping {
               },
           false,
           this.finishedSnapshotDataUrl,
+          this.finishedSnapshotDataUrl ? null : Ping.getLastViewedSnapshot(),
         );
       };
 

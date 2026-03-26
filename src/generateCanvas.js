@@ -2,6 +2,20 @@
 //import { createSketch } from "./sketch";
 import render from "./render";
 export default class generateCanvas {
+  static lastGeneratedSnapshotDataUrl = null;
+
+  static setLastSnapshot(snapshotDataUrl) {
+    if (!snapshotDataUrl) {
+      return;
+    }
+
+    generateCanvas.lastGeneratedSnapshotDataUrl = snapshotDataUrl;
+  }
+
+  static getLastSnapshot() {
+    return generateCanvas.lastGeneratedSnapshotDataUrl;
+  }
+
   constructor(
     environnemental,
     info = null,
@@ -10,6 +24,7 @@ export default class generateCanvas {
     onFinish = null,
     autoReveal = true,
     finishedSnapshotDataUrl = null,
+    initialTransitionSnapshotDataUrl = null,
   ) {
     if (
       typeof info === "function" &&
@@ -32,17 +47,33 @@ export default class generateCanvas {
     this.onFinish = onFinish;
     this.autoReveal = autoReveal;
     this.finishedSnapshotDataUrl = finishedSnapshotDataUrl;
+    this.initialTransitionSnapshotDataUrl = initialTransitionSnapshotDataUrl;
     this.finishedSnapshotImage = null;
     this.hasGeneratedImage = Boolean(finishedSnapshotDataUrl);
     this.transitionDuration = 200;
     this.isActive = true;
+    this.isGeneratedCanvasVisible = false;
     this.isRevealStarted = false;
     this.frameId = null;
     this.renderInstance = null;
     this.opacity = 1;
+    this.typewriterAnimationFrameId = null;
+    this.typewriterCharIndex = 0;
     this.handleResize = () => this.resizeCanvas();
 
     this.earthCanvas = document.getElementById("canvas");
+    this.constructionPanel = document.querySelector(".construction-pannel");
+    this.locationInfoPanel = document.getElementById("location-info-panel");
+    this.locationInfoTitleElement = document.getElementById(
+      "location-info-title",
+    );
+    this.locationInfoContentElement = document.getElementById(
+      "location-info-content",
+    );
+    this.constructionPanelOriginalParent = null;
+    this.constructionPanelOriginalNextSibling = null;
+    this.locationInfoPanelOriginalParent = null;
+    this.locationInfoPanelOriginalNextSibling = null;
     this.previousEarthCanvasVisibility =
       this.earthCanvas?.style.visibility ?? "";
     this.previousEarthCanvasPointerEvents =
@@ -97,12 +128,24 @@ export default class generateCanvas {
 
     this.backButton.style.display = "none";
     this.finishButton.style.display = "none";
+    this.ensureConstructionPanelLayer();
+    this.ensureLocationInfoPanelLayer();
+    this.updateLocationInfoPanelContent();
+    this.toggleConstructionPanel(false);
+    this.toggleLocationInfoPanel(false);
 
     this.backButton.onclick = () => {
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
+      const snapshotDataUrl = this.hasGeneratedImage
+        ? this.renderInstance?.getGeneratedImageDataUrl?.() ||
+          this.captureSnapshot()
+        : null;
+      if (snapshotDataUrl) {
+        generateCanvas.setLastSnapshot(snapshotDataUrl);
+      }
       if (typeof this.onBack === "function") {
-        this.onBack();
+        this.onBack(snapshotDataUrl);
       }
       this.toggleEarthCanvas(true);
       this.fadeOutCanvas(() => {
@@ -112,12 +155,17 @@ export default class generateCanvas {
     this.finishButton.onclick = () => {
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
-      const snapshotDataUrl = this.captureSnapshot();
+      const snapshotDataUrl =
+        this.renderInstance?.getGeneratedImageDataUrl?.() ||
+        this.captureSnapshot();
+      if (snapshotDataUrl) {
+        generateCanvas.setLastSnapshot(snapshotDataUrl);
+      }
       if (typeof this.onFinish === "function") {
         this.onFinish(snapshotDataUrl);
       }
       if (typeof this.onBack === "function") {
-        this.onBack();
+        this.onBack(snapshotDataUrl);
       }
       this.toggleEarthCanvas(true);
 
@@ -215,6 +263,7 @@ export default class generateCanvas {
     }
 
     if (isVisible) {
+      this.isGeneratedCanvasVisible = false;
       if (this.backButton) {
         this.backButton.style.display = "none";
       }
@@ -224,13 +273,140 @@ export default class generateCanvas {
       this.earthCanvas.style.visibility = this.previousEarthCanvasVisibility;
       this.earthCanvas.style.pointerEvents =
         this.previousEarthCanvasPointerEvents;
+      this.updateConstructionPanelVisibility();
+      this.updateLocationInfoPanelVisibility();
       return;
     }
 
+    this.isGeneratedCanvasVisible = true;
     this.updateButtonsVisibility();
 
     this.earthCanvas.style.visibility = "hidden";
     this.earthCanvas.style.pointerEvents = "none";
+    this.updateConstructionPanelVisibility();
+    this.updateLocationInfoPanelVisibility();
+  }
+  toggleConstructionPanel(isVisible) {
+    if (!this.constructionPanel) {
+      return;
+    }
+
+    this.constructionPanel.style.display = isVisible ? "block" : "none";
+  }
+  toggleLocationInfoPanel(isVisible) {
+    if (!this.locationInfoPanel) {
+      return;
+    }
+
+    this.locationInfoPanel.style.display = isVisible ? "block" : "none";
+  }
+  ensureConstructionPanelLayer() {
+    if (!this.constructionPanel) {
+      return;
+    }
+
+    if (this.constructionPanel.parentElement === document.body) {
+      return;
+    }
+
+    this.constructionPanelOriginalParent = this.constructionPanel.parentElement;
+    this.constructionPanelOriginalNextSibling =
+      this.constructionPanel.nextSibling;
+    document.body.appendChild(this.constructionPanel);
+  }
+  restoreConstructionPanelLayer() {
+    if (!this.constructionPanel || !this.constructionPanelOriginalParent) {
+      return;
+    }
+
+    if (this.constructionPanelOriginalNextSibling) {
+      this.constructionPanelOriginalParent.insertBefore(
+        this.constructionPanel,
+        this.constructionPanelOriginalNextSibling,
+      );
+      return;
+    }
+
+    this.constructionPanelOriginalParent.appendChild(this.constructionPanel);
+  }
+  ensureLocationInfoPanelLayer() {
+    if (!this.locationInfoPanel) {
+      return;
+    }
+
+    if (this.locationInfoPanel.parentElement === document.body) {
+      return;
+    }
+
+    this.locationInfoPanelOriginalParent = this.locationInfoPanel.parentElement;
+    this.locationInfoPanelOriginalNextSibling =
+      this.locationInfoPanel.nextSibling;
+    document.body.appendChild(this.locationInfoPanel);
+  }
+  restoreLocationInfoPanelLayer() {
+    if (!this.locationInfoPanel || !this.locationInfoPanelOriginalParent) {
+      return;
+    }
+
+    if (this.locationInfoPanelOriginalNextSibling) {
+      this.locationInfoPanelOriginalParent.insertBefore(
+        this.locationInfoPanel,
+        this.locationInfoPanelOriginalNextSibling,
+      );
+      return;
+    }
+
+    this.locationInfoPanelOriginalParent.appendChild(this.locationInfoPanel);
+  }
+  updateConstructionPanelVisibility() {
+    const shouldShow = this.isGeneratedCanvasVisible && this.hasGeneratedImage;
+    this.toggleConstructionPanel(shouldShow);
+  }
+  updateLocationInfoPanelVisibility() {
+    const shouldShow = this.isGeneratedCanvasVisible;
+    this.toggleLocationInfoPanel(shouldShow);
+  }
+  startTypewriterAnimation(fullText, element, speedMs = 5) {
+    // Cancel any existing animation
+    if (this.typewriterAnimationFrameId) {
+      cancelAnimationFrame(this.typewriterAnimationFrameId);
+    }
+
+    this.typewriterCharIndex = 0;
+    element.textContent = "";
+
+    const animate = () => {
+      if (this.typewriterCharIndex < fullText.length && this.isActive) {
+        const char = fullText[this.typewriterCharIndex];
+        element.textContent += char;
+        this.typewriterCharIndex++;
+
+        setTimeout(() => {
+          this.typewriterAnimationFrameId = requestAnimationFrame(animate);
+        }, speedMs);
+      } else {
+        this.typewriterAnimationFrameId = null;
+      }
+    };
+
+    this.typewriterAnimationFrameId = requestAnimationFrame(animate);
+  }
+
+  updateLocationInfoPanelContent() {
+    if (!this.locationInfoTitleElement || !this.locationInfoContentElement) {
+      return;
+    }
+
+    const panelInfo = this.info?.panelInfo;
+    const title = panelInfo?.title || this.info?.name || "Location";
+    const bodyLines = Array.isArray(panelInfo?.body) ? panelInfo.body : [];
+    const fullBodyText = bodyLines.join("\n");
+
+    this.locationInfoTitleElement.textContent = title;
+    this.startTypewriterAnimation(
+      fullBodyText,
+      this.locationInfoContentElement,
+    );
   }
   dispose() {
     this.isActive = false;
@@ -238,12 +414,20 @@ export default class generateCanvas {
       cancelAnimationFrame(this.frameId);
       this.frameId = null;
     }
+    if (this.typewriterAnimationFrameId) {
+      cancelAnimationFrame(this.typewriterAnimationFrameId);
+      this.typewriterAnimationFrameId = null;
+    }
     this.renderInstance?.dispose?.();
     this.renderInstance = null;
     window.removeEventListener("resize", this.handleResize);
     this.canvas?.remove();
     this.backButton?.remove();
     this.finishButton?.remove();
+    this.toggleConstructionPanel(false);
+    this.toggleLocationInfoPanel(false);
+    this.restoreConstructionPanelLayer();
+    this.restoreLocationInfoPanelLayer();
   }
   resizeCanvas() {
     this.canvas.width = window.innerWidth;
@@ -281,6 +465,7 @@ export default class generateCanvas {
         this.hasGeneratedImage = true;
         this.updateButtonsVisibility();
       },
+      null,
     );
   }
 
@@ -292,18 +477,21 @@ export default class generateCanvas {
     if (this.finishedSnapshotDataUrl) {
       this.backButton.style.display = "block";
       this.finishButton.style.display = "none";
+      this.updateConstructionPanelVisibility();
       return;
     }
 
     if (!this.hasGeneratedImage) {
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
+      this.updateConstructionPanelVisibility();
       return;
     }
 
     this.backButton.style.display = "block";
     this.finishButton.style.display =
       typeof this.onFinish === "function" ? "block" : "none";
+    this.updateConstructionPanelVisibility();
   }
 
   drawFinishedSnapshot() {
@@ -311,15 +499,21 @@ export default class generateCanvas {
       return;
     }
 
-    if (this.finishedSnapshotImage?.complete) {
+    const drawWithAspect = (image) => {
+      // Scale image to 75% of available space, maintaining square aspect ratio
+      const maxSize = Math.min(this.canvas.width, this.canvas.height) * 0.75;
+      const displaySize = Math.max(512, maxSize);
+      const drawX = (this.canvas.width - displaySize) * 0.5;
+      const drawY = (this.canvas.height - displaySize) * 0.5;
+
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(
-        this.finishedSnapshotImage,
-        0,
-        0,
-        this.canvas.width,
-        this.canvas.height,
-      );
+      this.ctx.fillStyle = "#000";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
+    };
+
+    if (this.finishedSnapshotImage?.complete) {
+      drawWithAspect(this.finishedSnapshotImage);
       return;
     }
 
@@ -330,8 +524,7 @@ export default class generateCanvas {
       }
 
       this.finishedSnapshotImage = img;
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+      drawWithAspect(img);
     };
     img.onerror = () => {
       console.error("Failed to load finished snapshot image");
@@ -377,6 +570,8 @@ export default class generateCanvas {
         return "savannah landscape, acacia trees, golden grasslands, warm atmosphere, dramatic lighting, cinematic composition";
       case "Forest":
         return "dense forest, tall trees, lush greenery, misty atmosphere, dramatic lighting, cinematic composition";
+      case "Desert mountain":
+        return "desert mountainous landscape, rocky terrain, sand dunes, dramatic lighting, cinematic composition";
     }
   }
 
