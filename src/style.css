@@ -217,9 +217,8 @@ button:hover{
 .construction-pannel{
   position: fixed;
   z-index: 10002;
-  top: 50%;
+  bottom: 1%;
   right: 1%;
-  transform: translateY(-50%);
   font-size: 24px;
   font-family: "Chivo Mono", monospace;
   background-color: rgba(0, 0, 0, 0.8);
@@ -301,9 +300,8 @@ button:hover{
 .location-info-panel{
   position: fixed;
   z-index: 10002;
-  top: 30%;
+  bottom: 1%;
   left: 1%;
-  transform: translateY(-50%);
   width: 19vw;
   max-height: 80vh;
   overflow-y: auto;

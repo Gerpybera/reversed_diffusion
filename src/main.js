@@ -444,7 +444,7 @@ fbxLoader.load("Earth.fbx", (object) => {
   controls.target.set(0, 0, 0);
   controls.update();
 
-  const earthRadius = Math.max(size.x, size.y, size.z) * 0.5 * 1.01;
+  const earthRadius = Math.max(size.x, size.y, size.z) * 0.5 * 1.04;
 
   for (const location of pingLocations) {
     const ping = Ping.fromLatLon(
@@ -458,7 +458,6 @@ fbxLoader.load("Earth.fbx", (object) => {
       location,
     );
 
-    ping.mesh.lookAt(0, 0, 0);
     ping.zoomIn(camera, controls, 1000, 2, () => {
       finishClickCount += 1;
       updateProgression();

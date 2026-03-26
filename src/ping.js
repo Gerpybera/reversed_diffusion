@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import generateCanvas from "./generateCanvas";
 
 export default class Ping {
@@ -22,18 +21,22 @@ export default class Ping {
     posY,
     posZ,
     size,
-    color = 0xff0000,
-    hoverColor = 0x3399ff,
+    color = 0x000000,
+    hoverColor = 0xff0000,
     info = null,
   ) {
     this.posX = posX;
     this.posY = posY;
     this.posZ = posZ;
     this.size = size;
-    this.baseColor = color;
-    this.finishedColor = 0x00ff00;
-    this.hoverColor = hoverColor;
+    this.baseColor = 0x000000;
+    this.finishedColor = 0xffffff;
+    this.hoverColor = 0xff0000;
     this.info = info;
+    this.markerTextureCanvas = null;
+    this.markerTextureContext = null;
+    this.markerTexture = null;
+    this.markerFillColor = this.baseColor;
     this.mesh = this.createPing();
     this.isCameraZoomed = false;
     this.isZoomTransitioning = false;
@@ -131,67 +134,56 @@ export default class Ping {
     hitbox.position.set(this.posX, this.posY, this.posZ);
     hitbox.userData.isHitbox = true;
 
-    const loader = new FBXLoader();
-    loader.load(
-      "ping.fbx",
-      (fbx) => {
-        fbx.scale.setScalar(this.size * 0.01);
-        fbx.rotation.x = THREE.MathUtils.degToRad(-90);
-        fbx.traverse((child) => {
-          if (child.isMesh && child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                mat.color?.set(this.baseColor);
-                mat.emissive?.set(this.baseColor);
-                if ("emissiveIntensity" in mat) {
-                  mat.emissiveIntensity = 1;
-                }
-              });
-            } else {
-              child.material.color?.set(this.baseColor);
-              child.material.emissive?.set(this.baseColor);
-              if ("emissiveIntensity" in child.material) {
-                child.material.emissiveIntensity = 1;
-              }
-            }
-          }
-        });
-        hitbox.add(fbx);
-      },
-      undefined,
-      () => {
-        const fallbackGeometry = new THREE.SphereGeometry(this.size, 32, 32);
-        const fallbackMaterial = new THREE.MeshBasicMaterial({
-          color: this.baseColor,
-        });
-        const fallbackSphere = new THREE.Mesh(
-          fallbackGeometry,
-          fallbackMaterial,
-        );
-        hitbox.add(fallbackSphere);
-      },
-    );
+    const textureSize = 128;
+    this.markerTextureCanvas = document.createElement("canvas");
+    this.markerTextureCanvas.width = textureSize;
+    this.markerTextureCanvas.height = textureSize;
+    this.markerTextureContext = this.markerTextureCanvas.getContext("2d");
+
+    this.markerTexture = new THREE.CanvasTexture(this.markerTextureCanvas);
+    this.markerTexture.minFilter = THREE.LinearFilter;
+    this.markerTexture.magFilter = THREE.NearestFilter;
+
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: this.markerTexture,
+      transparent: true,
+      depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    const spriteSize = this.size * 1.5;
+    sprite.scale.set(spriteSize, spriteSize, 1);
+    hitbox.add(sprite);
+
+    this.updateMarkerFillColor(this.baseColor);
 
     return hitbox;
+  }
+
+  updateMarkerFillColor(fillColor) {
+    if (!this.markerTextureContext || !this.markerTexture) {
+      return;
+    }
+
+    const ctx = this.markerTextureContext;
+    const size = this.markerTextureCanvas.width;
+    const borderSize = Math.floor(size * 0.05);
+    const innerStart = borderSize;
+    const innerSize = size - borderSize * 2;
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = `#${fillColor.toString(16).padStart(6, "0")}`;
+    ctx.fillRect(innerStart, innerStart, innerSize, innerSize);
+
+    this.markerTexture.needsUpdate = true;
   }
 
   setHovered(isHovered) {
     const restingColor = this.isFinished ? this.finishedColor : this.baseColor;
     const targetColor = isHovered ? this.hoverColor : restingColor;
-    this.mesh.traverse((child) => {
-      if (child.userData?.isHitbox) return;
-      if (child.isMesh && child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((mat) => {
-            mat.color?.set(targetColor);
-            mat.emissive?.set(targetColor);
-          });
-        } else {
-          child.material.color?.set(targetColor);
-          child.material.emissive?.set(targetColor);
-        }
-      }
-    });
+    this.markerFillColor = targetColor;
+    this.updateMarkerFillColor(targetColor);
   }
   setInfo(info) {
     this.info = info;
@@ -218,7 +210,11 @@ export default class Ping {
   }
   setPingMeshOpacity(opacity) {
     this.mesh.traverse((child) => {
-      if (child.userData?.isHitbox || !child.isMesh || !child.material) {
+      if (
+        child.userData?.isHitbox ||
+        (!child.isMesh && !child.isSprite) ||
+        !child.material
+      ) {
         return;
       }
 

@@ -300,12 +300,14 @@ export default class renderCanvas {
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     */
     this.ctx.fillStyle = "#fff";
-    this.ctx.font = "30px Alte Has Grotesk Regular, sans-serif";
-    this.ctx.textAlign = "left";
+    this.ctx.font = "30px IBM Plex Mono, sans-serif";
+    this.ctx.textAlign = "center";
+    const dotsCount = (Math.floor(performance.now() / 350) % 3) + 1;
+    const dots = ".".repeat(dotsCount);
     this.ctx.fillText(
-      "Connecting to location...",
-      this.canvas.width * 0.02,
-      this.canvas.height * 0.95,
+      `CONNECTING TO LOCATION${dots}`,
+      this.canvas.width * 0.5,
+      this.canvas.height * 0.5,
     );
   }
 
