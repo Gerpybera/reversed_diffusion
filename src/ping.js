@@ -31,7 +31,7 @@ export default class Ping {
     this.size = size;
     this.baseColor = 0x000000;
     this.finishedColor = 0xffffff;
-    this.hoverColor = 0xff0000;
+    this.hoverColor = 0xffffff;
     this.info = info;
     this.markerTextureCanvas = null;
     this.markerTextureContext = null;
@@ -123,7 +123,7 @@ export default class Ping {
   }
 
   createPing() {
-    const hitboxGeometry = new THREE.SphereGeometry(this.size * 1.25, 32, 32);
+    const hitboxGeometry = new THREE.SphereGeometry(this.size * 2, 32, 32);
     const hitboxMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,

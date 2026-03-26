@@ -39,8 +39,31 @@ export default class renderCanvas {
     this.frameId = null;
     this.isDisposed = false;
     this.webcamInitAttempted = false;
+    this.backgroundImage = null;
+    this.parallaxMaxOffset = 14;
+    this.parallaxTargetX = 0;
+    this.parallaxTargetY = 0;
+    this.parallaxCurrentX = 0;
+    this.parallaxCurrentY = 0;
+    this.handlePointerMove = (event) => {
+      if (this.isDisposed) {
+        return;
+      }
+
+      const normX = (event.clientX / window.innerWidth) * 2 - 1;
+      const normY = (event.clientY / window.innerHeight) * 2 - 1;
+      this.parallaxTargetX = normX * this.parallaxMaxOffset;
+      this.parallaxTargetY = normY * this.parallaxMaxOffset;
+    };
+    this.handlePointerLeave = () => {
+      this.parallaxTargetX = 0;
+      this.parallaxTargetY = 0;
+    };
 
     this.ensureWebcam();
+    window.addEventListener("pointermove", this.handlePointerMove);
+    window.addEventListener("mouseleave", this.handlePointerLeave);
+    this.loadBackgroundImage();
     this.setInitialDisplayImage(initialImageDataUrl);
     this.draw();
   }
@@ -78,6 +101,24 @@ export default class renderCanvas {
       this.webcamInitAttempted = false;
       console.error("Unable to initialize webcam:", error);
     });
+  }
+  async loadBackgroundImage() {
+    if (this.isDisposed) {
+      return;
+    }
+
+    try {
+      this.backgroundImage = await this.loadImage("/generating-background.png");
+      console.log(
+        "Background image loaded successfully:",
+        this.backgroundImage,
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load background image from /generating-background.png:",
+        error,
+      );
+    }
   }
   drawVideoCover(ctx, video, targetWidth, targetHeight) {
     const sourceWidth = video.videoWidth;
@@ -125,6 +166,28 @@ export default class renderCanvas {
     this.frameId = requestAnimationFrame(() => this.draw());
     this.queueRender();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.parallaxCurrentX +=
+      (this.parallaxTargetX - this.parallaxCurrentX) * 0.08;
+    this.parallaxCurrentY +=
+      (this.parallaxTargetY - this.parallaxCurrentY) * 0.08;
+    const bgImgSize = Math.min(this.canvas.width, this.canvas.height) * 0.9;
+
+    // Draw background image if available, otherwise black background
+    if (this.backgroundImage) {
+      this.ctx.fillStyle = "#000000";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.drawImage(
+        this.backgroundImage,
+        this.canvas.width * 0.5 - bgImgSize * 0.5,
+        this.canvas.height * 0.5 - bgImgSize * 0.5,
+        bgImgSize,
+        bgImgSize,
+      );
+    } else {
+      this.ctx.fillStyle = "#000000";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
     this.displayGeneratedImage();
 
     if (this.isRendering && !this.generatedImage) {
@@ -242,8 +305,10 @@ export default class renderCanvas {
     // Scale image to 75% of available space, maintaining square aspect ratio
     const maxSize = Math.min(this.canvas.width, this.canvas.height) * 0.75;
     const displaySize = Math.max(512, maxSize);
-    const drawX = (this.canvas.width - displaySize) * 0.5;
-    const drawY = (this.canvas.height - displaySize) * 0.5;
+    const drawX =
+      (this.canvas.width - displaySize) * 0.5 + this.parallaxCurrentX;
+    const drawY =
+      (this.canvas.height - displaySize) * 0.5 + this.parallaxCurrentY;
 
     this.ctx.save();
     this.ctx.globalAlpha = Math.min(1, Math.max(0, alpha));
@@ -259,10 +324,6 @@ export default class renderCanvas {
       const elapsed = performance.now() - this.transitionStartTime;
       const progress = Math.min(elapsed / this.transitionDurationMs, 1);
 
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.fillStyle = "#000";
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
       this.drawGeneratedImage(this.transitionToImage, 1);
       this.drawGeneratedImage(this.transitionFromImage, 1 - progress);
 
@@ -274,21 +335,16 @@ export default class renderCanvas {
     }
 
     if (this.displayImage) {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.fillStyle = "#000";
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       this.drawGeneratedImage(this.displayImage, 1);
       return;
     }
-
-    // Show black background instead of webcam during rendering
-    this.ctx.fillStyle = "#000";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   dispose() {
     this.isDisposed = true;
     cancelComfyRequest();
+    window.removeEventListener("pointermove", this.handlePointerMove);
+    window.removeEventListener("mouseleave", this.handlePointerLeave);
     if (this.frameId) {
       cancelAnimationFrame(this.frameId);
       this.frameId = null;

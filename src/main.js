@@ -8,7 +8,38 @@ import { initWebcam } from "./webcam.js";
 const canvas = document.getElementById("canvas");
 const endMessageElement = document.getElementById("message");
 const closeEndMessageButton = document.getElementById("close_message");
+const startMessageElement = document.getElementById("start-message");
+const closeStartMessageButton = document.getElementById("close_start_message");
 const restartButton = document.getElementById("restart-button");
+const selectionAudio = new Audio("/selection.mp3");
+selectionAudio.preload = "auto";
+const backAudio = new Audio("/back.mp3");
+backAudio.preload = "auto";
+const hoverAudio = new Audio("/hover.mp3");
+hoverAudio.preload = "auto";
+const constructionAudio = new Audio("/construction.mp3");
+constructionAudio.preload = "auto";
+const spaceAmbientAudio = new Audio("/space.mp3");
+spaceAmbientAudio.preload = "auto";
+spaceAmbientAudio.loop = true;
+
+function playHoverAudio() {
+  hoverAudio.currentTime = 0;
+  hoverAudio.play().catch(() => {});
+}
+
+function shouldPlaySpaceAmbient() {
+  return isEarthViewActive && !document.hidden && !isWebglContextLost;
+}
+
+function updateSpaceAmbientPlayback() {
+  if (shouldPlaySpaceAmbient()) {
+    spaceAmbientAudio.play().catch(() => {});
+    return;
+  }
+
+  spaceAmbientAudio.pause();
+}
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -19,8 +50,82 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
+
+let isWebglContextLost = false;
+let isRenderLoopRunning = false;
+let isEarthViewActive = true;
+
+function stopRenderLoop() {
+  if (!isRenderLoopRunning) {
+    return;
+  }
+
+  renderer.setAnimationLoop(null);
+  isRenderLoopRunning = false;
+}
+
+function startRenderLoop() {
+  if (isRenderLoopRunning || isWebglContextLost || !isEarthViewActive) {
+    return;
+  }
+
+  renderer.setAnimationLoop(animate);
+  isRenderLoopRunning = true;
+}
+
+if (canvas) {
+  canvas.addEventListener("webglcontextlost", (event) => {
+    event.preventDefault();
+    isWebglContextLost = true;
+    stopRenderLoop();
+    updateSpaceAmbientPlayback();
+    console.warn("WebGL context lost. Pausing render loop.");
+  });
+
+  canvas.addEventListener("webglcontextrestored", () => {
+    isWebglContextLost = false;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000);
+    startRenderLoop();
+    updateSpaceAmbientPlayback();
+    console.info("WebGL context restored. Render loop resumed.");
+  });
+}
+
+window.addEventListener("generated-canvas-opened", () => {
+  isEarthViewActive = false;
+  stopRenderLoop();
+  updateSpaceAmbientPlayback();
+});
+
+window.addEventListener("generated-canvas-closed", () => {
+  isEarthViewActive = true;
+  startRenderLoop();
+  updateSpaceAmbientPlayback();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopRenderLoop();
+    updateSpaceAmbientPlayback();
+    return;
+  }
+
+  startRenderLoop();
+  updateSpaceAmbientPlayback();
+});
+
+const unlockSpaceAmbient = () => {
+  updateSpaceAmbientPlayback();
+};
+
+window.addEventListener("click", unlockSpaceAmbient, { once: true });
+window.addEventListener("keydown", unlockSpaceAmbient, { once: true });
+window.addEventListener("touchstart", unlockSpaceAmbient, { once: true });
 
 preloadWorkflow().catch((error) => {
   console.error("Error preloading workflow:", error);
@@ -32,6 +137,7 @@ initWebcam().catch((error) => {
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const pings = [];
+let lastHoveredPingMesh = null;
 const progressionFillElement = document.querySelector(
   "#progression-fill, #progression_fill, .progression_fill",
 );
@@ -478,6 +584,10 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
 scene.add(ambientLight);
 
 function animate() {
+  if (isWebglContextLost) {
+    return;
+  }
+
   controls.update();
   if (stars) {
     stars.rotation.y += starRotationSpeed;
@@ -491,8 +601,20 @@ function animate() {
     const intersections = raycaster.intersectObjects(pingMeshes, false);
     const hoveredMesh =
       intersections.length > 0 ? intersections[0].object : null;
-    document.body.style.cursor =
-      !isAnyPingZooming && hoveredMesh ? "pointer" : "crosshair";
+
+    if (hoveredMesh && hoveredMesh !== lastHoveredPingMesh) {
+      playHoverAudio();
+    }
+
+    if (hoveredMesh !== lastHoveredPingMesh) {
+      window.dispatchEvent(
+        new CustomEvent("ping-hover-changed", {
+          detail: { isHovering: Boolean(hoveredMesh) },
+        }),
+      );
+    }
+
+    lastHoveredPingMesh = hoveredMesh;
 
     for (const ping of pings) {
       ping.setHovered(ping.mesh === hoveredMesh);
@@ -505,7 +627,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-renderer.setAnimationLoop(animate);
+startRenderLoop();
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -517,6 +639,33 @@ window.addEventListener("pointermove", (event) => {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+});
+
+document.addEventListener("mouseover", (event) => {
+  const targetButton = event.target?.closest?.("button");
+  if (!targetButton) {
+    return;
+  }
+
+  const previousButton = event.relatedTarget?.closest?.("button");
+  if (previousButton === targetButton) {
+    return;
+  }
+
+  playHoverAudio();
+});
+
+document.addEventListener("click", (event) => {
+  const constructionButton = event.target?.closest?.(
+    "#build-building, #upgrade-building, #demolish-building",
+  );
+
+  if (!constructionButton) {
+    return;
+  }
+
+  constructionAudio.currentTime = 0;
+  constructionAudio.play().catch(() => {});
 });
 
 window.addEventListener("click", () => {
@@ -535,6 +684,8 @@ window.addEventListener("click", () => {
   const clickedMesh = intersections[0].object;
   const callback = clickedMesh.userData.onClick;
   if (typeof callback === "function") {
+    selectionAudio.currentTime = 0;
+    selectionAudio.play().catch(() => {});
     callback();
   }
 });
@@ -549,8 +700,22 @@ window.addEventListener("keydown", (event) => {
 
 if (closeEndMessageButton && endMessageElement) {
   closeEndMessageButton.addEventListener("click", () => {
+    backAudio.currentTime = 0;
+    backAudio.play().catch(() => {});
     isEndMessageDismissed = true;
     endMessageElement.style.display = "none";
+  });
+}
+
+if (startMessageElement) {
+  startMessageElement.style.display = "block";
+}
+
+if (closeStartMessageButton && startMessageElement) {
+  closeStartMessageButton.addEventListener("click", () => {
+    backAudio.currentTime = 0;
+    backAudio.play().catch(() => {});
+    startMessageElement.style.display = "none";
   });
 }
 

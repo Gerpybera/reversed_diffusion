@@ -3,6 +3,35 @@
 import render from "./render";
 export default class generateCanvas {
   static lastGeneratedSnapshotDataUrl = null;
+  static instanceCounter = 0;
+  static backAudio = new Audio("/back.mp3");
+  static finishAudio = new Audio("/finish.mp3");
+  static activeEnvironmentAudio = null;
+  static activeEnvironmentAudioOwnerId = null;
+
+  static {
+    generateCanvas.backAudio.preload = "auto";
+    generateCanvas.finishAudio.preload = "auto";
+  }
+
+  static resolveEnvironmentAudioPath(environmentValue) {
+    switch (environmentValue) {
+      case "Polar":
+        return "/artic.mp3";
+      case "Desert":
+      case "Desert mountain":
+        return "/desert.mp3";
+      case "Rainforest":
+      case "Forest":
+        return "/jungle.mp3";
+      case "Mountain":
+        return "/mountain.mp3";
+      case "Savannah":
+        return "/savanne.mp3";
+      default:
+        return null;
+    }
+  }
 
   static setLastSnapshot(snapshotDataUrl) {
     if (!snapshotDataUrl) {
@@ -41,6 +70,7 @@ export default class generateCanvas {
     }
 
     this.environnemental = environnemental;
+    this.instanceId = `generate-canvas-instance-${generateCanvas.instanceCounter++}`;
     this.info = info;
     this.revealOrigin = revealOrigin;
     this.onBack = onBack;
@@ -49,6 +79,7 @@ export default class generateCanvas {
     this.finishedSnapshotDataUrl = finishedSnapshotDataUrl;
     this.initialTransitionSnapshotDataUrl = initialTransitionSnapshotDataUrl;
     this.finishedSnapshotImage = null;
+    this.generatingBackgroundImage = null;
     this.hasGeneratedImage = Boolean(finishedSnapshotDataUrl);
     this.transitionDuration = 200;
     this.isActive = true;
@@ -60,6 +91,27 @@ export default class generateCanvas {
     this.typewriterAnimationFrameId = null;
     this.typewriterCharIndex = 0;
     this.handleResize = () => this.resizeCanvas();
+    this.parallaxMaxOffset = 12;
+    this.parallaxX = 0;
+    this.parallaxY = 0;
+    this.handlePointerMove = (event) => {
+      const normX = (event.clientX / window.innerWidth) * 2 - 1;
+      const normY = (event.clientY / window.innerHeight) * 2 - 1;
+      this.parallaxX = normX * this.parallaxMaxOffset;
+      this.parallaxY = normY * this.parallaxMaxOffset;
+
+      if (this.finishedSnapshotDataUrl) {
+        this.drawFinishedSnapshot();
+      }
+    };
+    this.handlePointerLeave = () => {
+      this.parallaxX = 0;
+      this.parallaxY = 0;
+
+      if (this.finishedSnapshotDataUrl) {
+        this.drawFinishedSnapshot();
+      }
+    };
 
     this.earthCanvas = document.getElementById("canvas");
     this.constructionPanel = document.querySelector(".construction-pannel");
@@ -106,6 +158,7 @@ export default class generateCanvas {
       this.canvas.style.transformOrigin = "center center";
       document.body.appendChild(this.canvas);
     }
+    this.canvas.dataset.ownerInstanceId = this.instanceId;
 
     this.canvas.style.transformOrigin = this.getTransformOrigin();
 
@@ -116,6 +169,7 @@ export default class generateCanvas {
       this.backButton.textContent = "Back";
       document.body.appendChild(this.backButton);
     }
+    this.backButton.dataset.ownerInstanceId = this.instanceId;
     this.finishButton = document.getElementById(
       "generated-canvas-finish-button",
     );
@@ -125,6 +179,7 @@ export default class generateCanvas {
       this.finishButton.textContent = "Finish";
       document.body.appendChild(this.finishButton);
     }
+    this.finishButton.dataset.ownerInstanceId = this.instanceId;
 
     this.backButton.style.display = "none";
     this.finishButton.style.display = "none";
@@ -135,6 +190,8 @@ export default class generateCanvas {
     this.toggleLocationInfoPanel(false);
 
     this.backButton.onclick = () => {
+      generateCanvas.backAudio.currentTime = 0;
+      generateCanvas.backAudio.play().catch(() => {});
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
       const snapshotDataUrl = this.hasGeneratedImage
@@ -153,6 +210,8 @@ export default class generateCanvas {
       });
     };
     this.finishButton.onclick = () => {
+      generateCanvas.finishAudio.currentTime = 0;
+      generateCanvas.finishAudio.play().catch(() => {});
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
       const snapshotDataUrl =
@@ -178,13 +237,33 @@ export default class generateCanvas {
     if (!this.ctx) {
       return;
     }
+    this.loadGeneratingBackgroundImage();
     this.resizeCanvas();
     this.draw();
     if (this.img.complete && this.autoReveal) {
       this.startReveal();
     }
     window.addEventListener("resize", this.handleResize);
+    window.addEventListener("pointermove", this.handlePointerMove);
+    window.addEventListener("mouseleave", this.handlePointerLeave);
     console.log(info);
+  }
+  loadGeneratingBackgroundImage() {
+    const image = new Image();
+
+    image.onload = () => {
+      this.generatingBackgroundImage = image;
+
+      if (this.finishedSnapshotDataUrl) {
+        this.drawFinishedSnapshot();
+      }
+    };
+
+    image.onerror = () => {
+      console.error("Failed to load generating background image");
+    };
+
+    image.src = "/generating-background.png";
   }
   captureSnapshot() {
     if (!this.canvas) {
@@ -228,6 +307,14 @@ export default class generateCanvas {
       return;
     }
 
+    if (this.finishedSnapshotDataUrl) {
+      this.canvas.style.transition = "none";
+      this.canvas.style.opacity = "1";
+      this.toggleEarthCanvas(false);
+      this.updateButtonsVisibility();
+      return;
+    }
+
     this.canvas.style.transition = `opacity ${this.transitionDuration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
     this.canvas.style.opacity = "0";
 
@@ -248,6 +335,15 @@ export default class generateCanvas {
       return;
     }
 
+    if (this.finishedSnapshotDataUrl) {
+      this.canvas.style.transition = "none";
+      this.canvas.style.opacity = "0";
+      if (typeof onComplete === "function") {
+        onComplete();
+      }
+      return;
+    }
+
     this.canvas.style.transition = `opacity ${this.transitionDuration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
     this.canvas.style.opacity = "0";
 
@@ -257,12 +353,49 @@ export default class generateCanvas {
       }
     }, this.transitionDuration);
   }
+  startEnvironmentAudio() {
+    const environmentValue =
+      this.environnemental ?? this.info?.environnemental ?? "default";
+    const audioPath =
+      generateCanvas.resolveEnvironmentAudioPath(environmentValue);
+
+    if (!audioPath) {
+      return;
+    }
+
+    if (generateCanvas.activeEnvironmentAudio) {
+      generateCanvas.activeEnvironmentAudio.pause();
+      generateCanvas.activeEnvironmentAudio.currentTime = 0;
+    }
+
+    const audio = new Audio(audioPath);
+    audio.preload = "auto";
+    audio.loop = true;
+    audio.play().catch(() => {});
+
+    generateCanvas.activeEnvironmentAudio = audio;
+    generateCanvas.activeEnvironmentAudioOwnerId = this.instanceId;
+  }
+  stopEnvironmentAudio() {
+    if (
+      !generateCanvas.activeEnvironmentAudio ||
+      generateCanvas.activeEnvironmentAudioOwnerId !== this.instanceId
+    ) {
+      return;
+    }
+
+    generateCanvas.activeEnvironmentAudio.pause();
+    generateCanvas.activeEnvironmentAudio.currentTime = 0;
+    generateCanvas.activeEnvironmentAudio = null;
+    generateCanvas.activeEnvironmentAudioOwnerId = null;
+  }
   toggleEarthCanvas(isVisible) {
     if (!this.earthCanvas) {
       return;
     }
 
     if (isVisible) {
+      this.stopEnvironmentAudio();
       this.isGeneratedCanvasVisible = false;
       if (this.backButton) {
         this.backButton.style.display = "none";
@@ -273,16 +406,19 @@ export default class generateCanvas {
       this.earthCanvas.style.visibility = this.previousEarthCanvasVisibility;
       this.earthCanvas.style.pointerEvents =
         this.previousEarthCanvasPointerEvents;
+      window.dispatchEvent(new CustomEvent("generated-canvas-closed"));
       this.updateConstructionPanelVisibility();
       this.updateLocationInfoPanelVisibility();
       return;
     }
 
     this.isGeneratedCanvasVisible = true;
+    this.startEnvironmentAudio();
     this.updateButtonsVisibility();
 
     this.earthCanvas.style.visibility = "hidden";
     this.earthCanvas.style.pointerEvents = "none";
+    window.dispatchEvent(new CustomEvent("generated-canvas-opened"));
     this.updateConstructionPanelVisibility();
     this.updateLocationInfoPanelVisibility();
   }
@@ -410,6 +546,7 @@ export default class generateCanvas {
   }
   dispose() {
     this.isActive = false;
+    this.stopEnvironmentAudio();
     if (this.frameId) {
       cancelAnimationFrame(this.frameId);
       this.frameId = null;
@@ -421,9 +558,17 @@ export default class generateCanvas {
     this.renderInstance?.dispose?.();
     this.renderInstance = null;
     window.removeEventListener("resize", this.handleResize);
-    this.canvas?.remove();
-    this.backButton?.remove();
-    this.finishButton?.remove();
+    window.removeEventListener("pointermove", this.handlePointerMove);
+    window.removeEventListener("mouseleave", this.handlePointerLeave);
+    if (this.canvas?.dataset?.ownerInstanceId === this.instanceId) {
+      this.canvas.remove();
+    }
+    if (this.backButton?.dataset?.ownerInstanceId === this.instanceId) {
+      this.backButton.remove();
+    }
+    if (this.finishButton?.dataset?.ownerInstanceId === this.instanceId) {
+      this.finishButton.remove();
+    }
     this.toggleConstructionPanel(false);
     this.toggleLocationInfoPanel(false);
     this.restoreConstructionPanelLayer();
@@ -503,12 +648,30 @@ export default class generateCanvas {
       // Scale image to 75% of available space, maintaining square aspect ratio
       const maxSize = Math.min(this.canvas.width, this.canvas.height) * 0.75;
       const displaySize = Math.max(512, maxSize);
-      const drawX = (this.canvas.width - displaySize) * 0.5;
-      const drawY = (this.canvas.height - displaySize) * 0.5;
+      const drawX = (this.canvas.width - displaySize) * 0.5 + this.parallaxX;
+      const drawY = (this.canvas.height - displaySize) * 0.5 + this.parallaxY;
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+      if (this.generatingBackgroundImage) {
+        const backgroundSize =
+          Math.min(this.canvas.width, this.canvas.height) * 0.9;
+        const backgroundX =
+          (this.canvas.width - backgroundSize) * 0.5 - this.parallaxX * 0.2;
+        const backgroundY =
+          (this.canvas.height - backgroundSize) * 0.5 - this.parallaxY * 0.2;
+
+        this.ctx.drawImage(
+          this.generatingBackgroundImage,
+          backgroundX,
+          backgroundY,
+          backgroundSize,
+          backgroundSize,
+        );
+      }
+
       this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
     };
 
