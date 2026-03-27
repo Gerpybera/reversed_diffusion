@@ -54,7 +54,7 @@ button:hover{
 
 
 .info-header{
-  font-family: "IBM Plex mono", sans-serif;
+  font-family: "Chivo Mono", monospace;
   color: #fff;
   position: absolute;
   bottom: 0;
@@ -82,7 +82,7 @@ button:hover{
   align-items: flex-start;
   text-align: right;
   gap: 0.1vh;
-  font-family: "IBM Plex mono", sans-serif;
+  font-family: "Chivo Mono", monospace;
   color: #fff;
 }
 
@@ -195,7 +195,6 @@ button:hover{
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
 }
 .message_header{
   width: 100% ;
@@ -299,6 +298,28 @@ button:hover{
   background-color: rgba(255, 255, 255, 0.8);
   color: #000;
   cursor: pointer;
+}
+.construction_buttons button.is-selected{
+  background-color: #fff;
+  color: #000;
+}
+
+#ping-hover-label{
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(-9999px, -9999px);
+  color: #fff;
+  font-family: "Chivo Mono", monospace;
+  font-size: 0.9em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10002;
+  opacity: 0;
+  transition: opacity 120ms linear;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
 .location-info-panel{

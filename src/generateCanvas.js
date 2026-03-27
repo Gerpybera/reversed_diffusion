@@ -20,14 +20,44 @@ export default class generateCanvas {
         return "/artic.mp3";
       case "Desert":
       case "Desert mountain":
+      case "Desert Sahara":
         return "/desert.mp3";
       case "Rainforest":
       case "Forest":
+      case "Forest USA":
         return "/jungle.mp3";
       case "Mountain":
+      case "Mount":
         return "/mountain.mp3";
       case "Savannah":
         return "/savanne.mp3";
+      default:
+        return null;
+    }
+  }
+
+  static resolveEnvironmentSeed(environmentValue) {
+    switch (environmentValue) {
+      case "Polar":
+        return 1;
+      case "Desert":
+        return 43;
+      case "Desert mountain":
+        return 36;
+      case "Desert Sahara":
+        return 4;
+      case "Rainforest":
+        return 14;
+      case "Forest":
+          return 8;
+      case "Forest USA":
+        return 4;
+      case "Mountain":
+        return 1;
+      case "Mount":
+        return 4;
+      case "Savannah":
+        return 11;
       default:
         return null;
     }
@@ -166,7 +196,7 @@ export default class generateCanvas {
     if (!this.backButton) {
       this.backButton = document.createElement("button");
       this.backButton.id = "generated-canvas-back-button";
-      this.backButton.textContent = "Back";
+      this.backButton.textContent = "Cancel";
       document.body.appendChild(this.backButton);
     }
     this.backButton.dataset.ownerInstanceId = this.instanceId;
@@ -191,6 +221,7 @@ export default class generateCanvas {
 
     this.backButton.onclick = () => {
       generateCanvas.backAudio.currentTime = 0;
+      generateCanvas.backAudio.volume = 0.3;
       generateCanvas.backAudio.play().catch(() => {});
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
@@ -211,6 +242,7 @@ export default class generateCanvas {
     };
     this.finishButton.onclick = () => {
       generateCanvas.finishAudio.currentTime = 0;
+      generateCanvas.finishAudio.volume = 0.5;
       generateCanvas.finishAudio.play().catch(() => {});
       this.backButton.style.display = "none";
       this.finishButton.style.display = "none";
@@ -275,6 +307,14 @@ export default class generateCanvas {
     } catch (error) {
       console.error("Failed to load frame image from /frame.png:", error);
     }
+  }
+  loadImage(sourceUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = sourceUrl;
+    });
   }
   captureSnapshot() {
     if (!this.canvas) {
@@ -506,7 +546,10 @@ export default class generateCanvas {
     this.locationInfoPanelOriginalParent.appendChild(this.locationInfoPanel);
   }
   updateConstructionPanelVisibility() {
-    const shouldShow = this.isGeneratedCanvasVisible && this.hasGeneratedImage;
+    const shouldShow =
+      this.isGeneratedCanvasVisible &&
+      this.hasGeneratedImage &&
+      !this.finishedSnapshotDataUrl;
     this.toggleConstructionPanel(shouldShow);
   }
   updateLocationInfoPanelVisibility() {
@@ -630,8 +673,16 @@ export default class generateCanvas {
       return;
     }
 
+    if (!this.isGeneratedCanvasVisible) {
+      this.backButton.style.display = "none";
+      this.finishButton.style.display = "none";
+      this.updateConstructionPanelVisibility();
+      return;
+    }
+
     if (this.finishedSnapshotDataUrl) {
-      this.backButton.style.display = "block";
+      const isSnapshotReady = Boolean(this.finishedSnapshotImage?.complete);
+      this.backButton.style.display = isSnapshotReady ? "block" : "none";
       this.finishButton.style.display = "none";
       this.updateConstructionPanelVisibility();
       return;
@@ -663,13 +714,13 @@ export default class generateCanvas {
       const drawY = (this.canvas.height - displaySize) * 0.5 + this.parallaxY;
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.fillStyle = "#000";
+      this.ctx.fillStyle = "#000000";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       this.ctx.drawImage(image, drawX, drawY, displaySize, displaySize);
 
       if (this.frameImage) {
-        const sizeFactor = 1.5;
+        const sizeFactor = 1.25;
         const frameX = (this.canvas.width - displaySize * sizeFactor) * 0.5;
         const frameY = (this.canvas.height - displaySize * sizeFactor) * 0.5;
         this.ctx.drawImage(
@@ -684,6 +735,7 @@ export default class generateCanvas {
 
     if (this.finishedSnapshotImage?.complete) {
       drawWithAspect(this.finishedSnapshotImage);
+      this.updateButtonsVisibility();
       return;
     }
 
@@ -695,6 +747,7 @@ export default class generateCanvas {
 
       this.finishedSnapshotImage = img;
       drawWithAspect(img);
+      this.updateButtonsVisibility();
     };
     img.onerror = () => {
       console.error("Failed to load finished snapshot image");
@@ -729,25 +782,45 @@ export default class generateCanvas {
       case "default":
         return "citybkg, aerial top-down,  city, luxury glass skyscrapers, from above, modern towers, photorealistic, 8k, cinematic lighting, sharp details, birds eye view, ultra realistic";
       case "Desert":
-        return "desert, sand dunes, bird view, 45 degree";
+        return "Bird view, 45-degree camera angle, of the Saudi Arabian desert, rocks";
+      case "Desert Sahara":
+        return "desert, sahara viewed at a 45-degree angle, as if seen from a bird in flight"
       case "Rainforest":
-        return "jungle, forest, bird view, 45 degree";
+        return "jungle viewed at a 45-degree angle, as if seen from a bird in flight";
       case "Polar":
-        return "arctic polar landscape, icy terrain, snow-covered mountains, cold atmosphere, dramatic lighting, cinematic composition";
+        return "A frozen Antarctic landscape viewed from above at a 45-degree angle, as if seen from a bird in flight. Vast white ice fields, glaciers and snow-covered terrain, minimal details, soft cold light, clear sky, simple composition, realistic perspective";
       case "Mountain":
-        return "mountainous landscape, rugged peaks, alpine scenery, dramatic lighting, cinematic composition";
+        return "A mountain landscape in the Alps viewed from above at a 45-degree angle, as if seen from a bird in flight, greenery, realistic perspective";
+      case "Mount":
+        return "A mountain landscape in Tibet viewed from above at a 45-degree angle, as if seen from a bird in flight. Only rugged mountain peaks and rocky terrain with light snow fill the frame, no sky visible. Cool natural tones, simple composition, realistic perspective";
       case "Savannah":
-        return "savannah landscape, acacia trees, golden grasslands, warm atmosphere, dramatic lighting, cinematic composition";
+        return "A savanna in Kenya viewed from above at a 45-degree angle, as if seen from a bird in flight. Golden grasslands, scattered acacia trees, warm natural tones, simple composition, realistic perspective, pond";
       case "Forest":
-        return "dense forest, tall trees, lush greenery, misty atmosphere, dramatic lighting, cinematic composition";
+        return "A forest landscape in Argentina viewed from above at a 45-degree angle, as if seen from a bird in flight. Dense green trees, natural earthy tones, soft sunlight, clear sky, simple composition, realistic perspective"
+      case "Forest USA":
+        return "A North American forest viewed from above at a 45-degree angle, as if seen from a bird in flight, realistic perspective, river";
       case "Desert mountain":
-        return "desert mountainous landscape, rocky terrain, sand dunes, dramatic lighting, cinematic composition";
+        return "A mountain landscape in Mongolia viewed from above at a 45-degree angle, as if seen from a bird in flight. Rolling rugged mountains, sparse vegetation, natural earthy colors, clear sky, soft sunlight, simple composition, realistic perspective";
     }
   }
 
   buildSeedKey(environnemental, info = null) {
     const environmentValue =
       environnemental ?? info?.environnemental ?? "default";
+    const explicitSeed = info?.seed ?? info?.environmentSeed;
+
+    if (typeof explicitSeed === "number" && !Number.isNaN(explicitSeed)) {
+      return `env:${environmentValue}|seed:${explicitSeed}`;
+    }
+
+    const environmentSeed = generateCanvas.resolveEnvironmentSeed(
+      environmentValue,
+    );
+
+    if (typeof environmentSeed === "number" && !Number.isNaN(environmentSeed)) {
+      return `env:${environmentValue}|seed:${environmentSeed}`;
+    }
+
     const nameValue = info?.name ?? "unknown";
     const latitudeValue =
       typeof info?.latitude === "number" ? info.latitude.toFixed(6) : "na";

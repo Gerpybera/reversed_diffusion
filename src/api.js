@@ -4,8 +4,9 @@ let currentController = null;
 let currentWorkflowPath = null;
 let workflowDropdownInitialized = false;
 const workflowCache = new Map();
+let currentConstructionPrompt = null;
 
-const workflowModules = import.meta.glob("./workflows/sdxlturbo_b64_V3.json");
+const workflowModules = import.meta.glob("./workflows/ai_Building_gen.json");
 const defaultWorkflowPath = Object.keys(workflowModules)[0] ?? null;
 
 function setStatus(text) {
@@ -76,6 +77,11 @@ export function getCurrentWorkflowPath() {
     currentWorkflowPath = defaultWorkflowPath;
   }
   return currentWorkflowPath;
+}
+
+export function setConstructionPrompt(promptText) {
+  currentConstructionPrompt =
+    typeof promptText === "string" ? promptText : null;
 }
 
 export function cancelComfyRequest() {
@@ -193,6 +199,22 @@ function applyWorkflowInputs(workflow, dataUrl, promptText, seed) {
 
   if (textNode) {
     textNode.inputs.text = promptText;
+  }
+
+  const constructionPrompt =
+    typeof currentConstructionPrompt === "string"
+      ? currentConstructionPrompt.trim()
+      : "";
+
+  if (constructionPrompt) {
+    const node49 = workflow["49"];
+    if (
+      node49 &&
+      node49.class_type === "CLIPTextEncode" &&
+      "text" in node49.inputs
+    ) {
+      node49.inputs.text = constructionPrompt;
+    }
   }
 
   for (const node of nodes) {

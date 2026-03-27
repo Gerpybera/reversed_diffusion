@@ -1,3 +1,5 @@
+import { add } from "three/tsl";
+
 const cursorCanvas = document.createElement("canvas");
 const cursorContext = cursorCanvas.getContext("2d");
 
@@ -27,6 +29,7 @@ let lastCursorY = 0;
 const expansionDuration = 200; // milliseconds for full expansion
 let expansionStartTime = 0;
 let animationFrameId = null;
+let cursorFrameId = null;
 
 let displayDesign = true; // This variable is declared but not used in the provided code snippet. It may be used elsewhere in the application.
 
@@ -48,8 +51,6 @@ function animateExpansion() {
   const elapsed = Date.now() - expansionStartTime;
   expansionProgress = Math.min(elapsed / expansionDuration, 1);
 
-  drawCursor(lastCursorX, lastCursorY);
-
   if (expansionProgress < 1) {
     animationFrameId = requestAnimationFrame(animateExpansion);
   } else {
@@ -57,9 +58,23 @@ function animateExpansion() {
   }
 }
 
+function startCursorLoop() {
+  if (cursorFrameId) {
+    return;
+  }
+
+  const loop = () => {
+    drawCursor(lastCursorX, lastCursorY);
+    cursorFrameId = requestAnimationFrame(loop);
+  };
+
+  cursorFrameId = requestAnimationFrame(loop);
+}
+
 function drawCursor(x, y) {
   lastCursorX = x;
   lastCursorY = y;
+  const globalSize = 25;
 
   cursorContext.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
   cursorContext.lineWidth = 0.5;
@@ -101,10 +116,18 @@ function drawCursor(x, y) {
   cursorContext.lineTo(x, y + 10);
   cursorContext.stroke();
 
-  addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.01, 25, 180);
-  addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.01, 25, 270);
-  addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.9, 25, 90);
-  addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.9, 25, 0);
+  if (displayDesign) {
+    addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.01, globalSize, 180);
+    addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.01, globalSize, 270);
+    addCorner(cursorCanvas.width * 0.01, cursorCanvas.height * 0.91, globalSize, 90);
+    addCorner(cursorCanvas.width * 0.99, cursorCanvas.height * 0.91, globalSize, 0);
+    addCross(cursorCanvas.width * 0.5, cursorCanvas.height * 0.02, globalSize * 0.5);
+    addCross(cursorCanvas.width * 0.5, cursorCanvas.height * 0.9, globalSize * 0.5);
+    addCross(cursorCanvas.width * 0.01, cursorCanvas.height * 0.46, globalSize * 0.5);
+    addCross(cursorCanvas.width * 0.99, cursorCanvas.height * 0.46, globalSize * 0.5);
+    
+  }
+
 }
 
 window.addEventListener("mousemove", (event) => {
@@ -112,9 +135,10 @@ window.addEventListener("mousemove", (event) => {
     event.clientX,
     event.clientY,
   );
+  lastCursorX = event.clientX;
+  lastCursorY = event.clientY;
   isOverButton = Boolean(hoveredElement?.closest?.("button"));
   updateLineMode();
-  drawCursor(event.clientX, event.clientY);
 
   // If we're currently expanding and user moves, update the animation from the new position
   if (isExpanding) {
@@ -131,11 +155,13 @@ window.addEventListener("mouseleave", () => {
 
 window.addEventListener("generated-canvas-opened", () => {
   isInGeneratedCanvas = true;
+  displayDesign = false;
   updateLineMode();
 });
 
 window.addEventListener("generated-canvas-closed", () => {
   isInGeneratedCanvas = false;
+  displayDesign = true;
   updateLineMode();
 });
 
@@ -150,6 +176,10 @@ window.addEventListener("resize", () => {
   drawCursor(lastCursorX, lastCursorY);
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+  startCursorLoop();
+});
+
 function addCorner(x, y, size = 10, rotation = 0) {
   cursorContext.save();
   cursorContext.lineWidth = 2;
@@ -161,4 +191,14 @@ function addCorner(x, y, size = 10, rotation = 0) {
   cursorContext.lineTo(0, -size);
   cursorContext.stroke();
   cursorContext.restore();
+}
+
+function addCross(x, y, size = 10) {
+  cursorContext.beginPath();
+  cursorContext.moveTo(x - size, y);
+  cursorContext.lineTo(x - size, y);
+  cursorContext.lineTo(x + size, y);
+  cursorContext.moveTo(x, y - size);
+  cursorContext.lineTo(x, y + size);
+  cursorContext.stroke();
 }

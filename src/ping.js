@@ -1,6 +1,14 @@
 import * as THREE from "three";
 import generateCanvas from "./generateCanvas";
 
+const volume = 0.4;
+const zoomAudio = new Audio("/zoom.mp3");
+zoomAudio.preload = "auto";
+zoomAudio.volume = volume;
+const dezoomAudio = new Audio("/dezoom.mp3");
+dezoomAudio.preload = "auto";
+dezoomAudio.volume = volume;
+
 export default class Ping {
   static lastViewedSnapshotDataUrl = null;
 
@@ -265,6 +273,8 @@ export default class Ping {
       }
 
       this.isZoomTransitioning = true;
+      zoomAudio.currentTime = 0;
+      zoomAudio.play().catch(() => {});
 
       const targetWorldPosition = new THREE.Vector3();
       this.mesh.getWorldPosition(targetWorldPosition);
@@ -402,6 +412,8 @@ export default class Ping {
 
     this.isCameraZoomed = false;
     this.isZoomTransitioning = true;
+    dezoomAudio.currentTime = 0;
+    dezoomAudio.play().catch(() => {});
 
     const startCameraPosition = camera.position.clone();
     const startTarget = controls ? controls.target.clone() : null;

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { FBXLoader } from "three/examples/jsm/Addons.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Ping from "./ping.js";
-import { preloadWorkflow } from "./api.js";
+import { preloadWorkflow, setConstructionPrompt } from "./api.js";
 import { initWebcam } from "./webcam.js";
 
 const canvas = document.getElementById("canvas");
@@ -14,6 +14,7 @@ const restartButton = document.getElementById("restart-button");
 const selectionAudio = new Audio("/selection.mp3");
 selectionAudio.preload = "auto";
 const backAudio = new Audio("/back.mp3");
+backAudio.volume = 0.3;
 backAudio.preload = "auto";
 const hoverAudios = [
   new Audio("/hover.mp3"),
@@ -24,9 +25,54 @@ const hoverAudios = [
 ];
 hoverAudios.forEach((audio) => {
   audio.preload = "auto";
+  audio.volume = 0.4;
 });
+
 const constructionAudio = new Audio("/construction.mp3");
 constructionAudio.preload = "auto";
+constructionAudio.volume = 0.3;
+const defaultConstructionPrompt =
+  "bird view 45°, european town, church, modern architecture";
+const constructionPromptMap = {
+  "default-building": defaultConstructionPrompt,
+  "luxe-building":
+    "bird view 45°, Dubai glass towers luxe, skyline",
+  "suburbs-building":
+    "bird view 45°, buildings",
+  "industrial-building":
+    "bird view 45°, industry, nuclear central, cooling towers",
+};
+let activeConstructionButtonId = "default-building";
+
+function applyConstructionSelection() {
+  const constructionButtons = document.querySelectorAll(
+    ".construction_buttons button",
+  );
+  if (!constructionButtons.length) {
+    return;
+  }
+
+  constructionButtons.forEach((button) => {
+    button.classList.toggle(
+      "is-selected",
+      button.id === activeConstructionButtonId,
+    );
+  });
+}
+
+function setActiveConstructionButton(buttonId) {
+  activeConstructionButtonId =
+    typeof buttonId === "string" && buttonId.length
+      ? buttonId
+      : "default-building";
+  const mappedPrompt =
+    constructionPromptMap[activeConstructionButtonId] ||
+    defaultConstructionPrompt;
+  setConstructionPrompt(mappedPrompt);
+  applyConstructionSelection();
+}
+
+setActiveConstructionButton(activeConstructionButtonId);
 const spaceAmbientAudio = new Audio("/space.mp3");
 spaceAmbientAudio.preload = "auto";
 spaceAmbientAudio.loop = true;
@@ -116,6 +162,8 @@ window.addEventListener("generated-canvas-opened", () => {
   isEarthViewActive = false;
   stopRenderLoop();
   updateSpaceAmbientPlayback();
+  hidePingHoverLabel();
+  applyConstructionSelection();
 });
 
 window.addEventListener("generated-canvas-closed", () => {
@@ -154,6 +202,9 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const pings = [];
 let lastHoveredPingMesh = null;
+let pingHoverLabel = null;
+let pingHoverLabelText = "";
+let pingHoverTypeTimer = null;
 const progressionFillElement = document.querySelector(
   "#progression-fill, #progression_fill, .progression_fill",
 );
@@ -177,6 +228,81 @@ function renderProgressionDividers(segmentCount) {
     progressionBarElement.appendChild(divider);
   }
 }
+
+function getPingHoverLabel() {
+  if (pingHoverLabel) {
+    return pingHoverLabel;
+  }
+
+  const label = document.createElement("div");
+  label.id = "ping-hover-label";
+  label.style.opacity = "0";
+  document.body.appendChild(label);
+  pingHoverLabel = label;
+  return label;
+}
+
+function hidePingHoverLabel() {
+  if (!pingHoverLabel) {
+    return;
+  }
+
+  pingHoverLabel.style.opacity = "0";
+  pingHoverLabel.textContent = "";
+  pingHoverLabelText = "";
+  if (pingHoverTypeTimer) {
+    clearTimeout(pingHoverTypeTimer);
+    pingHoverTypeTimer = null;
+  }
+}
+
+function setPingHoverLabelText(text) {
+  const label = getPingHoverLabel();
+  const nextText = String(text || "").trim();
+  if (!nextText || nextText === pingHoverLabelText) {
+    return;
+  }
+
+  pingHoverLabelText = nextText;
+  label.textContent = "";
+  if (pingHoverTypeTimer) {
+    clearTimeout(pingHoverTypeTimer);
+    pingHoverTypeTimer = null;
+  }
+
+  let index = 0;
+  const step = () => {
+    if (index >= nextText.length) {
+      pingHoverTypeTimer = null;
+      return;
+    }
+
+    label.textContent += nextText[index];
+    index += 1;
+    pingHoverTypeTimer = window.setTimeout(step, 12);
+  };
+
+  step();
+}
+
+function positionPingHoverLabel(mesh) {
+  if (!mesh) {
+    return;
+  }
+
+  const label = getPingHoverLabel();
+  const worldPosition = new THREE.Vector3();
+  mesh.getWorldPosition(worldPosition);
+  worldPosition.project(camera);
+
+  const screenX = (worldPosition.x * 0.5 + 0.5) * window.innerWidth;
+  const screenY = (-worldPosition.y * 0.5 + 0.5) * window.innerHeight;
+  const offsetX = 18;
+  const offsetY = -8;
+
+  label.style.transform = `translate(${Math.round(screenX + offsetX)}px, ${Math.round(screenY + offsetY)}px)`;
+  label.style.opacity = "1";
+}
 let finishClickCount = 0;
 let progression = 0;
 let isEndMessageDismissed = false;
@@ -195,9 +321,15 @@ let earthTiltGroup = null;
 
 const fbxLoader = new FBXLoader();
 const textureLoader = new THREE.TextureLoader();
+let earthMaterial = null;
+let earthTextureCanvas = null;
+let earthTextureCtx = null;
+let earthTextureMap = null;
+const pendingEarthMarks = [];
 const globalScale = 0.5;
 const fixedCameraDistance = 200;
 const earthLongitudeOffset = 90;
+const earthTextureLongitudeOffset = 0;
 const earthTiltDegrees = 23.5;
 const colorPing = 0xff4040;
 const hoverColorPing = 0x3399ff;
@@ -207,6 +339,86 @@ const starMinDistance = 1200;
 const starMaxDistance = 4000;
 const starSize = 1.8;
 const starRotationSpeed = 0.0002;
+
+function initEarthTextureCanvas(texture, material) {
+  if (!texture?.image || !material) {
+    return;
+  }
+
+  earthTextureCanvas = document.createElement("canvas");
+  earthTextureCanvas.width = texture.image.width || 1;
+  earthTextureCanvas.height = texture.image.height || 1;
+  earthTextureCtx = earthTextureCanvas.getContext("2d");
+  if (!earthTextureCtx) {
+    return;
+  }
+
+  earthTextureCtx.drawImage(texture.image, 0, 0);
+  earthTextureMap = new THREE.CanvasTexture(earthTextureCanvas);
+  if (texture.colorSpace) {
+    earthTextureMap.colorSpace = texture.colorSpace;
+  }
+  earthTextureMap.needsUpdate = true;
+  material.map = earthTextureMap;
+  material.needsUpdate = true;
+
+  if (pendingEarthMarks.length > 0) {
+    const queued = pendingEarthMarks.splice(0, pendingEarthMarks.length);
+    queued.forEach(({ lat, lon }) => drawEarthStamp(lat, lon));
+  }
+}
+
+function drawEarthStamp(lat, lon) {
+  if (!earthTextureCtx || !earthTextureCanvas || !earthTextureMap) {
+    return;
+  }
+
+  if (typeof lat !== "number" || typeof lon !== "number") {
+    return;
+  }
+
+  const adjustedLon = lon + earthTextureLongitudeOffset;
+  const wrappedLon = ((adjustedLon + 180) % 360 + 360) % 360;
+  const u = wrappedLon / 360;
+  const v = (90 - lat) / 180;
+  const x = u * earthTextureCanvas.width;
+  const y = v * earthTextureCanvas.height;
+  const radius = Math.max(12, earthTextureCanvas.width * 0.03);
+
+  earthTextureCtx.save();
+  earthTextureCtx.globalCompositeOperation = "source-over";
+
+  const gradient = earthTextureCtx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, "rgba(180, 180, 180, 0.95)");
+  gradient.addColorStop(0.6, "rgba(180, 180, 180, 0.6)");
+  gradient.addColorStop(1, "rgba(180, 180, 180, 0)");
+  earthTextureCtx.fillStyle = gradient;
+  earthTextureCtx.beginPath();
+  earthTextureCtx.arc(x, y, radius, 0, Math.PI * 2);
+  earthTextureCtx.fill();
+
+  if (x < radius) {
+    earthTextureCtx.beginPath();
+    earthTextureCtx.arc(x + earthTextureCanvas.width, y, radius, 0, Math.PI * 2);
+    earthTextureCtx.fill();
+  } else if (x > earthTextureCanvas.width - radius) {
+    earthTextureCtx.beginPath();
+    earthTextureCtx.arc(x - earthTextureCanvas.width, y, radius, 0, Math.PI * 2);
+    earthTextureCtx.fill();
+  }
+
+  earthTextureCtx.restore();
+  earthTextureMap.needsUpdate = true;
+}
+
+function addEarthStamp(lat, lon) {
+  if (!earthTextureCtx || !earthTextureCanvas || !earthTextureMap) {
+    pendingEarthMarks.push({ lat, lon });
+    return;
+  }
+
+  drawEarthStamp(lat, lon);
+}
 
 function createStars(
   count = starCount,
@@ -320,9 +532,9 @@ const pingLocations = [
     latitude: 24.495777322023212,
     longitude: 12.990920566044199,
     color: colorPing,
-    environnemental: "Desert",
+    environnemental: "Desert Sahara",
     panelInfo: {
-      title: "SAHARA ROCK DESERT   |   23°N 13°E",
+      title: "SAHARA DESERT   |   23°N 13°E",
       body: [
         "ERG & REG — ALGERIA / NIGER",
         "9,200,000 KM²",
@@ -408,7 +620,7 @@ const pingLocations = [
     latitude: 46.18653679699062,
     longitude: -115.35479191268243,
     color: colorPing,
-    environnemental: "Forest",
+    environnemental: "Forest USA",
     panelInfo: {
       title: "YELLOWSTONE   |   44°N 110°W",
       body: [
@@ -474,7 +686,7 @@ const pingLocations = [
     latitude: 33.18626739090745,
     longitude: 88.8335682436747,
     color: colorPing,
-    environnemental: "Mountain",
+    environnemental: "Mount",
     panelInfo: {
       title: "MOUNT KAILASH   |   31°N 81°E",
       body: [
@@ -549,9 +761,14 @@ fbxLoader.load("Earth.fbx", (object) => {
   earthTiltGroup.rotation.z = THREE.MathUtils.degToRad(earthTiltDegrees);
   earthTiltGroup.add(object);
 
-  const earthTexture = textureLoader.load("1_earth_8kv2.jpg");
-  object.children[0].material.map = earthTexture;
-  setReflectionStrength(object.children[0].material, reflectionStrength);
+  earthMaterial = object.children[0]?.material || null;
+  const earthTexture = textureLoader.load("1_earth_8kv2.jpg", (texture) => {
+    initEarthTextureCanvas(texture, earthMaterial);
+  });
+  if (earthMaterial) {
+    earthMaterial.map = earthTexture;
+    setReflectionStrength(earthMaterial, reflectionStrength);
+  }
   scene.add(earthTiltGroup);
 
   // Auto-fit camera to model
@@ -581,6 +798,7 @@ fbxLoader.load("Earth.fbx", (object) => {
     );
 
     ping.zoomIn(camera, controls, 1000, 2, () => {
+      addEarthStamp(location.latitude, location.longitude);
       finishClickCount += 1;
       updateProgression();
     });
@@ -632,6 +850,15 @@ function animate() {
 
     lastHoveredPingMesh = hoveredMesh;
 
+    if (hoveredMesh) {
+      const info = hoveredMesh.userData?.info;
+      const title = info?.panelInfo?.title || info?.name || "Location";
+      setPingHoverLabelText(title);
+      positionPingHoverLabel(hoveredMesh);
+    } else {
+      hidePingHoverLabel();
+    }
+
     for (const ping of pings) {
       ping.setHovered(ping.mesh === hoveredMesh);
 
@@ -673,12 +900,14 @@ document.addEventListener("mouseover", (event) => {
 
 document.addEventListener("click", (event) => {
   const constructionButton = event.target?.closest?.(
-    "#build-building, #upgrade-building, #demolish-building",
+    "#default-building, #luxe-building, #suburbs-building, #industrial-building",
   );
 
   if (!constructionButton) {
     return;
   }
+
+  setActiveConstructionButton(constructionButton.id);
 
   constructionAudio.currentTime = 0;
   constructionAudio.play().catch(() => {});
@@ -701,6 +930,7 @@ window.addEventListener("click", () => {
   const callback = clickedMesh.userData.onClick;
   if (typeof callback === "function") {
     selectionAudio.currentTime = 0;
+    selectionAudio.volume = 0.5;
     selectionAudio.play().catch(() => {});
     callback();
   }
